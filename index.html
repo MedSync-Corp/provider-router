@@ -166,6 +166,7 @@
     ];
 
     const CANONICAL_PAYERS = ["Medicare", "Medicaid", "Aetna", "UHC", "BCBS", "Cigna", "Humana", "TRICARE"];
+    const OTHER_PAYERS = ["Claritev/Multiplan", "Ambetter", "Devoted Health", "Oscar", "Optum"];
 
     let currentUser = null;
     let supabase = null;
@@ -228,6 +229,13 @@
       }
     }
 
+    // Format date for display
+    function formatCredentialDate(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
     // Render provider card
     function renderProviderCard(provider, selectedState, selectedPayer) {
       const isActive = provider.status === 'Active';
@@ -238,7 +246,14 @@
         `<span class="badge badge-state">${s}</span>`
       ).join(' ');
 
-      const payersHtml = (provider.contracted_payers || []).map(p => {
+      // Derive contracted payers from matched_credentials (Approved credentials) if available
+      const matchedCreds = provider.matched_credentials || [];
+      const approvedPayers = [...new Set(matchedCreds.map(c => c.payer))];
+
+      // Use approved credentials if available, otherwise fall back to flat array
+      const displayPayers = approvedPayers.length > 0 ? approvedPayers : (provider.contracted_payers || []);
+
+      const payersHtml = displayPayers.map(p => {
         const isMatched = selectedPayer !== '*' && p === selectedPayer;
         return `<span class="badge ${isMatched ? 'badge-payer-matched' : 'badge-payer'}">${p}</span>`;
       }).join(' ');
@@ -246,6 +261,31 @@
       const pendingPayersHtml = (provider.pending_payers || []).length > 0
         ? `<div class="mt-2"><span class="text-sm text-gray-500 italic">Pending:</span> ${provider.pending_payers.map(p => `<span class="badge badge-pending">${p}</span>`).join(' ')}</div>`
         : '';
+
+      // Build credential details section for matched state+payer
+      let credentialDetailsHtml = '';
+      if (matchedCreds.length > 0) {
+        const relevantCreds = selectedPayer !== '*'
+          ? matchedCreds.filter(c => c.payer === selectedPayer)
+          : matchedCreds;
+
+        if (relevantCreds.length > 0) {
+          credentialDetailsHtml = `
+            <div class="mt-4 pt-4 border-t border-gray-200 bg-green-50 -mx-6 px-6 py-3 -mb-6 rounded-b-lg">
+              <span class="text-sm font-medium text-green-800">Credential Details for ${selectedState}</span>
+              <div class="mt-2 space-y-1">
+                ${relevantCreds.map(c => `
+                  <div class="text-sm text-green-700">
+                    <span class="font-medium">${c.payer}</span>
+                    ${c.approval_date ? ` — Approved ${formatCredentialDate(c.approval_date)}` : ''}
+                    ${c.notes ? ` — <span class="italic">${c.notes}</span>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+      }
 
       const cardClass = isActive ? 'result-card' : 'result-card result-card-muted';
 
@@ -317,11 +357,12 @@
               <div class="mt-1 flex flex-wrap gap-1">${statesHtml || '<span class="text-gray-400">None</span>'}</div>
             </div>
             <div>
-              <span class="text-sm text-gray-500">Contracted Payers</span>
+              <span class="text-sm text-gray-500">Approved Payers (from credentials)</span>
               <div class="mt-1 flex flex-wrap gap-1">${payersHtml || '<span class="text-gray-400">None</span>'}</div>
               ${pendingPayersHtml}
             </div>
           </div>
+          ${credentialDetailsHtml}
         </div>
       `;
     }
@@ -353,7 +394,7 @@
       document.getElementById('noteModal').classList.remove('hidden');
     };
 
-    // Search providers
+    // Search providers using provider_credentials table
     async function searchProviders() {
       const state = document.getElementById('stateSelect').value;
       const payer = document.getElementById('payerSelect').value;
@@ -371,22 +412,18 @@
       document.getElementById('initialState').classList.add('hidden');
       document.getElementById('resultsSection').classList.remove('hidden');
 
+      // Query provider_credentials with provider data
       let query = supabase
-        .from('providers')
-        .select('*')
-        .contains('licensed_states', [state]);
-
-      if (activeOnly) {
-        query = query.eq('status', 'Active');
-      }
+        .from('provider_credentials')
+        .select('*, providers(*)')
+        .eq('state', state)
+        .eq('status', 'Approved');
 
       if (payer !== '*') {
-        query = query.contains('contracted_payers', [payer]);
+        query = query.eq('payer', payer);
       }
 
-      query = query.order('last_name');
-
-      const { data: results, error } = await query;
+      const { data: credentials, error } = await query;
 
       if (error) {
         showToast('Error searching providers', 'error');
@@ -394,13 +431,35 @@
         return;
       }
 
+      // Filter by provider status if toggle is on
+      let results = credentials || [];
+      if (activeOnly) {
+        results = results.filter(c => c.providers && c.providers.status === 'Active');
+      }
+
+      // Group by provider (a provider may have multiple approved credentials in that state)
+      const providerMap = new Map();
+      for (const cred of results) {
+        if (!cred.providers) continue;
+        const pid = cred.provider_id;
+        if (!providerMap.has(pid)) {
+          providerMap.set(pid, { ...cred.providers, matched_credentials: [] });
+        }
+        providerMap.get(pid).matched_credentials.push({
+          payer: cred.payer,
+          approval_date: cred.approval_date,
+          notes: cred.notes
+        });
+      }
+      const providers = Array.from(providerMap.values()).sort((a, b) => a.last_name.localeCompare(b.last_name));
+
       // Log the search
       await supabase.from('routing_log').insert({
         patient_state: state,
         patient_payer: payer,
-        matched: results.length > 0,
-        results_count: results.length,
-        matched_provider_id: results.length > 0 ? results[0].id : null,
+        matched: providers.length > 0,
+        results_count: providers.length,
+        matched_provider_id: providers.length > 0 ? providers[0].id : null,
         created_by: currentUser.email
       });
 
@@ -408,12 +467,12 @@
       const payerName = payer === '*' ? 'All Payers' : payer;
 
       document.getElementById('resultsTitle').textContent = `Results for ${stateName} + ${payerName}`;
-      document.getElementById('resultsCount').textContent = `${results.length} of ${totalProviders} providers match`;
+      document.getElementById('resultsCount').textContent = `${providers.length} of ${totalProviders} providers match`;
 
-      if (results.length > 0) {
+      if (providers.length > 0) {
         document.getElementById('noResults').classList.add('hidden');
         document.getElementById('resultsContainer').classList.remove('hidden');
-        document.getElementById('resultsContainer').innerHTML = results.map(p => renderProviderCard(p, state, payer)).join('');
+        document.getElementById('resultsContainer').innerHTML = providers.map(p => renderProviderCard(p, state, payer)).join('');
         feather.replace({ width: 16, height: 16 });
       } else {
         document.getElementById('resultsContainer').classList.add('hidden');
@@ -444,14 +503,30 @@
           stateSelect.appendChild(opt);
         });
 
-        // Populate payer dropdown
+        // Populate payer dropdown with optgroups
         const payerSelect = document.getElementById('payerSelect');
+
+        // Canonical payers
+        const canonicalGroup = document.createElement('optgroup');
+        canonicalGroup.label = 'Primary Payers';
         CANONICAL_PAYERS.forEach(payer => {
           const opt = document.createElement('option');
           opt.value = payer;
           opt.textContent = payer;
-          payerSelect.appendChild(opt);
+          canonicalGroup.appendChild(opt);
         });
+        payerSelect.appendChild(canonicalGroup);
+
+        // Other payers
+        const otherGroup = document.createElement('optgroup');
+        otherGroup.label = 'Other Payers';
+        OTHER_PAYERS.forEach(payer => {
+          const opt = document.createElement('option');
+          opt.value = payer;
+          opt.textContent = payer;
+          otherGroup.appendChild(opt);
+        });
+        payerSelect.appendChild(otherGroup);
 
         // Get total provider count
         const { count } = await supabase.from('providers').select('*', { count: 'exact', head: true });

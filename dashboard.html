@@ -219,11 +219,14 @@
     ];
 
     const CANONICAL_PAYERS = ["Medicare", "Medicaid", "Aetna", "UHC", "BCBS", "Cigna", "Humana", "TRICARE"];
+    const OTHER_PAYERS = ["Claritev/Multiplan", "Ambetter", "Devoted Health", "Oscar", "Optum"];
+    const ALL_PAYERS = [...CANONICAL_PAYERS, ...OTHER_PAYERS];
     const PRIORITY_STATES = ["FL", "AZ", "MS", "MI", "NV", "TX", "TN", "PA", "MT", "ID", "WA"];
 
     let currentUser = null;
     let supabase = null;
     let providers = [];
+    let credentials = [];
     let routingLogs = [];
 
     // Get state name from code
@@ -255,6 +258,18 @@
       providers = data || [];
     }
 
+    // Load credentials with provider status
+    async function loadCredentials() {
+      const { data, error } = await supabase
+        .from('provider_credentials')
+        .select('state, payer, status, provider_id, providers(status)');
+      if (error) {
+        console.error(error);
+        return;
+      }
+      credentials = data || [];
+    }
+
     // Load routing logs
     async function loadRoutingLogs() {
       const { data, error } = await supabase
@@ -269,20 +284,24 @@
       routingLogs = data || [];
     }
 
-    // Calculate stats
+    // Calculate stats using provider_credentials
     function calculateStats() {
       const activeProviders = providers.filter(p => p.status === 'Active');
 
-      // Unique states covered by active providers
+      // Unique states covered: Active provider with Approved credential
       const coveredStates = new Set();
-      activeProviders.forEach(p => {
-        (p.licensed_states || []).forEach(s => coveredStates.add(s));
+      credentials.forEach(c => {
+        if (c.status === 'Approved' && c.providers && c.providers.status === 'Active') {
+          coveredStates.add(c.state);
+        }
       });
 
-      // Unique payers covered by active providers
+      // Unique payers covered: Active provider with Approved credential
       const coveredPayers = new Set();
-      activeProviders.forEach(p => {
-        (p.contracted_payers || []).forEach(payer => coveredPayers.add(payer));
+      credentials.forEach(c => {
+        if (c.status === 'Approved' && c.providers && c.providers.status === 'Active') {
+          coveredPayers.add(c.payer);
+        }
       });
 
       document.getElementById('statActiveProviders').textContent = activeProviders.length;
@@ -292,42 +311,49 @@
       return { activeProviders, coveredStates, coveredPayers };
     }
 
-    // Build coverage matrix
+    // Build coverage matrix using provider_credentials
     function buildCoverageMatrix(priorityOnly = false) {
-      const activeProviders = providers.filter(p => p.status === 'Active');
-      const inProgressProviders = providers.filter(p => p.status === 'In Progress');
-
       // Determine which states to show
       let statesToShow;
       if (priorityOnly) {
         statesToShow = PRIORITY_STATES;
       } else {
-        // Show states where at least one provider (any status) is licensed
-        const allCoveredStates = new Set();
-        providers.forEach(p => {
-          (p.licensed_states || []).forEach(s => allCoveredStates.add(s));
-        });
-        statesToShow = US_STATES.filter(s => allCoveredStates.has(s.code)).map(s => s.code);
+        // Show states where at least one credential exists
+        const allStatesWithCreds = new Set();
+        credentials.forEach(c => allStatesWithCreds.add(c.state));
+        statesToShow = US_STATES.filter(s => allStatesWithCreds.has(s.code)).map(s => s.code);
       }
 
-      // Build coverage data
+      // Build coverage data from credentials
       const coverageData = {};
       let totalGaps = 0;
 
       statesToShow.forEach(state => {
         coverageData[state] = {};
         CANONICAL_PAYERS.forEach(payer => {
-          const activeCount = activeProviders.filter(p =>
-            (p.licensed_states || []).includes(state) &&
-            (p.contracted_payers || []).includes(payer)
-          ).length;
+          // Count Active providers with Approved credentials
+          const activeApprovedSet = new Set();
+          credentials.forEach(c => {
+            if (c.state === state && c.payer === payer && c.status === 'Approved' &&
+                c.providers && c.providers.status === 'Active') {
+              activeApprovedSet.add(c.provider_id);
+            }
+          });
+          const activeCount = activeApprovedSet.size;
 
-          const pipelineCount = inProgressProviders.filter(p =>
-            (p.licensed_states || []).includes(state) &&
-            ((p.contracted_payers || []).includes(payer) || (p.pending_payers || []).includes(payer))
-          ).length;
+          // Count In Progress credentials (any provider status)
+          const inProgressSet = new Set();
+          credentials.forEach(c => {
+            if (c.state === state && c.payer === payer && c.status === 'In Progress') {
+              inProgressSet.add(c.provider_id);
+            }
+          });
+          const pipelineCount = inProgressSet.size;
 
-          coverageData[state][payer] = { active: activeCount, pipeline: pipelineCount };
+          // Check if any credential exists at all
+          const anyCredExists = credentials.some(c => c.state === state && c.payer === payer);
+
+          coverageData[state][payer] = { active: activeCount, pipeline: pipelineCount, anyExists: anyCredExists };
 
           if (activeCount === 0 && pipelineCount === 0) {
             totalGaps++;
@@ -460,7 +486,7 @@
         wireLogoutButton();
 
         // Load data
-        await Promise.all([loadProviders(), loadRoutingLogs()]);
+        await Promise.all([loadProviders(), loadCredentials(), loadRoutingLogs()]);
 
         // Render
         calculateStats();
