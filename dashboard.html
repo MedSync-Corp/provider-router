@@ -119,15 +119,19 @@
       <div class="mb-4 flex flex-wrap gap-4 text-sm">
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-          <span class="text-gray-600">Covered (Active NP)</span>
+          <span class="text-gray-600">Routable Now</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
+          <span class="text-gray-600">Approved - Pending Effective</span>
         </div>
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-amber-100 border border-amber-300 rounded"></div>
-          <span class="text-gray-600">Pipeline (In Progress)</span>
+          <span class="text-gray-600">In Progress</span>
         </div>
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
-          <span class="text-gray-600">Gap (No Coverage)</span>
+          <span class="text-gray-600">Gap</span>
         </div>
       </div>
       <div class="overflow-x-auto">
@@ -258,11 +262,11 @@
       providers = data || [];
     }
 
-    // Load credentials with provider status
+    // Load credentials with provider status and effective_date
     async function loadCredentials() {
       const { data, error } = await supabase
         .from('provider_credentials')
-        .select('state, payer, status, provider_id, providers(status)');
+        .select('state, payer, status, effective_date, provider_id, providers(status)');
       if (error) {
         console.error(error);
         return;
@@ -312,7 +316,10 @@
     }
 
     // Build coverage matrix using provider_credentials
+    // V2.1: 4-color matrix: Green (routable), Blue (approved-pending), Amber (in progress), Red (gap)
     function buildCoverageMatrix(priorityOnly = false) {
+      const today = new Date().toISOString().split('T')[0];
+
       // Determine which states to show
       let statesToShow;
       if (priorityOnly) {
@@ -331,31 +338,44 @@
       statesToShow.forEach(state => {
         coverageData[state] = {};
         CANONICAL_PAYERS.forEach(payer => {
-          // Count Active providers with Approved credentials
-          const activeApprovedSet = new Set();
+          // ROUTABLE NOW: Active provider + Approved + effective_date <= today
+          const routableSet = new Set();
           credentials.forEach(c => {
             if (c.state === state && c.payer === payer && c.status === 'Approved' &&
+                c.effective_date && c.effective_date <= today &&
                 c.providers && c.providers.status === 'Active') {
-              activeApprovedSet.add(c.provider_id);
+              routableSet.add(c.provider_id);
             }
           });
-          const activeCount = activeApprovedSet.size;
+          const routableCount = routableSet.size;
 
-          // Count In Progress credentials (any provider status)
+          // APPROVED-PENDING: Approved but effective_date > today (Active provider)
+          const approvedPendingSet = new Set();
+          credentials.forEach(c => {
+            if (c.state === state && c.payer === payer && c.status === 'Approved' &&
+                c.effective_date && c.effective_date > today &&
+                c.providers && c.providers.status === 'Active') {
+              approvedPendingSet.add(c.provider_id);
+            }
+          });
+          const approvedPendingCount = approvedPendingSet.size;
+
+          // IN PROGRESS: status = 'In Progress' (any provider status)
           const inProgressSet = new Set();
           credentials.forEach(c => {
             if (c.state === state && c.payer === payer && c.status === 'In Progress') {
               inProgressSet.add(c.provider_id);
             }
           });
-          const pipelineCount = inProgressSet.size;
+          const inProgressCount = inProgressSet.size;
 
-          // Check if any credential exists at all
-          const anyCredExists = credentials.some(c => c.state === state && c.payer === payer);
+          coverageData[state][payer] = {
+            routable: routableCount,
+            approvedPending: approvedPendingCount,
+            inProgress: inProgressCount
+          };
 
-          coverageData[state][payer] = { active: activeCount, pipeline: pipelineCount, anyExists: anyCredExists };
-
-          if (activeCount === 0 && pipelineCount === 0) {
+          if (routableCount === 0 && approvedPendingCount === 0 && inProgressCount === 0) {
             totalGaps++;
           }
         });
@@ -381,13 +401,20 @@
           const data = coverageData[state][payer];
           let cellClass, cellContent;
 
-          if (data.active > 0) {
+          if (data.routable > 0) {
+            // Green: Routable now
             cellClass = 'coverage-covered';
-            cellContent = data.active;
-          } else if (data.pipeline > 0) {
+            cellContent = data.routable;
+          } else if (data.approvedPending > 0) {
+            // Blue: Approved but not yet effective
+            cellClass = 'coverage-pending';
+            cellContent = data.approvedPending;
+          } else if (data.inProgress > 0) {
+            // Amber: In progress
             cellClass = 'coverage-pipeline';
-            cellContent = `(${data.pipeline})`;
+            cellContent = `(${data.inProgress})`;
           } else {
+            // Red: Gap
             cellClass = 'coverage-gap';
             cellContent = '0';
           }

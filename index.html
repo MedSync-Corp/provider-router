@@ -93,6 +93,13 @@
 
     <!-- Results Section -->
     <div id="resultsSection" class="hidden">
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4" id="resultsSummary">
+        <div class="flex items-center gap-2">
+          <i data-feather="check-circle" class="h-5 w-5 text-green-600"></i>
+          <span id="routableSummary" class="text-green-800 font-medium"></span>
+        </div>
+        <div id="pendingSummary" class="text-blue-700 text-sm mt-1 hidden"></div>
+      </div>
       <div class="flex items-center justify-between mb-4">
         <h3 id="resultsTitle" class="text-lg font-semibold text-gray-900"></h3>
         <span id="resultsCount" class="text-sm text-gray-600"></span>
@@ -239,6 +246,7 @@
     // Render provider card
     function renderProviderCard(provider, selectedState, selectedPayer) {
       const isActive = provider.status === 'Active';
+      const isPending = provider.isPending; // Approved but effective_date > today
       const statusClass = provider.status === 'Active' ? 'badge-active' :
                           provider.status === 'In Progress' ? 'badge-in-progress' : 'badge-blocked';
 
@@ -270,13 +278,22 @@
           : matchedCreds;
 
         if (relevantCreds.length > 0) {
+          const bgColor = isPending ? 'bg-blue-50' : 'bg-green-50';
+          const textColor = isPending ? 'text-blue-800' : 'text-green-800';
+          const subTextColor = isPending ? 'text-blue-700' : 'text-green-700';
+          const headerText = isPending
+            ? `Approved but not yet effective for ${selectedState}`
+            : `Credential Details for ${selectedState}`;
+
           credentialDetailsHtml = `
-            <div class="mt-4 pt-4 border-t border-gray-200 bg-green-50 -mx-6 px-6 py-3 -mb-6 rounded-b-lg">
-              <span class="text-sm font-medium text-green-800">Credential Details for ${selectedState}</span>
+            <div class="mt-4 pt-4 border-t border-gray-200 ${bgColor} -mx-6 px-6 py-3 -mb-6 rounded-b-lg">
+              <span class="text-sm font-medium ${textColor}">${headerText}</span>
               <div class="mt-2 space-y-1">
                 ${relevantCreds.map(c => `
-                  <div class="text-sm text-green-700">
+                  <div class="text-sm ${subTextColor}">
                     <span class="font-medium">${c.payer}</span>
+                    ${c.effective_date ? ` — Effective ${formatCredentialDate(c.effective_date)}` : ''}
+                    ${c.reference_number ? ` — Ref# ${c.reference_number}` : ''}
                     ${c.approval_date ? ` — Approved ${formatCredentialDate(c.approval_date)}` : ''}
                     ${c.notes ? ` — <span class="italic">${c.notes}</span>` : ''}
                   </div>
@@ -287,14 +304,23 @@
         }
       }
 
-      const cardClass = isActive ? 'result-card' : 'result-card result-card-muted';
+      // Pending providers get a slightly different visual treatment
+      let cardClass = isActive ? 'result-card' : 'result-card result-card-muted';
+      if (isPending) {
+        cardClass += ' border-l-4 border-l-blue-400';
+      }
+
+      // Pending badge for providers approved but not yet effective
+      const pendingBadge = isPending
+        ? '<span class="badge bg-blue-100 text-blue-800 ml-2">Approved - Pending Effective Date</span>'
+        : '';
 
       return `
         <div class="${cardClass}" data-provider-id="${provider.id}">
           <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
             <div>
               <h4 class="text-xl font-bold text-gray-900">${provider.first_name} ${provider.last_name}</h4>
-              <span class="badge ${statusClass}">${provider.status}</span>
+              <span class="badge ${statusClass}">${provider.status}</span>${pendingBadge}
             </div>
             <div class="flex flex-wrap gap-2">
               <button class="copy-btn px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1" onclick="window.copyNPI('${provider.personal_npi}', this)">
@@ -395,10 +421,12 @@
     };
 
     // Search providers using provider_credentials table
+    // V2.1: Only return providers who can bill TODAY (effective_date <= today)
     async function searchProviders() {
       const state = document.getElementById('stateSelect').value;
       const payer = document.getElementById('payerSelect').value;
       const activeOnly = document.getElementById('activeOnlyToggle').checked;
+      const today = new Date().toISOString().split('T')[0];
 
       if (!state) {
         showToast('Please select a state', 'error');
@@ -412,54 +440,92 @@
       document.getElementById('initialState').classList.add('hidden');
       document.getElementById('resultsSection').classList.remove('hidden');
 
-      // Query provider_credentials with provider data
-      let query = supabase
+      // Query ROUTABLE credentials: Approved AND effective_date <= today
+      let routableQuery = supabase
         .from('provider_credentials')
         .select('*, providers(*)')
         .eq('state', state)
-        .eq('status', 'Approved');
+        .eq('status', 'Approved')
+        .lte('effective_date', today);
 
       if (payer !== '*') {
-        query = query.eq('payer', payer);
+        routableQuery = routableQuery.eq('payer', payer);
       }
 
-      const { data: credentials, error } = await query;
+      // Query PENDING credentials: Approved BUT effective_date > today
+      let pendingQuery = supabase
+        .from('provider_credentials')
+        .select('*, providers(*)')
+        .eq('state', state)
+        .eq('status', 'Approved')
+        .gt('effective_date', today);
 
-      if (error) {
+      if (payer !== '*') {
+        pendingQuery = pendingQuery.eq('payer', payer);
+      }
+
+      const [routableResult, pendingResult] = await Promise.all([routableQuery, pendingQuery]);
+
+      if (routableResult.error || pendingResult.error) {
         showToast('Error searching providers', 'error');
-        console.error(error);
+        console.error(routableResult.error || pendingResult.error);
         return;
       }
 
       // Filter by provider status if toggle is on
-      let results = credentials || [];
+      let routableCreds = routableResult.data || [];
+      let pendingCreds = pendingResult.data || [];
+
       if (activeOnly) {
-        results = results.filter(c => c.providers && c.providers.status === 'Active');
+        routableCreds = routableCreds.filter(c => c.providers && c.providers.status === 'Active');
+        pendingCreds = pendingCreds.filter(c => c.providers && c.providers.status === 'Active');
       }
 
-      // Group by provider (a provider may have multiple approved credentials in that state)
-      const providerMap = new Map();
-      for (const cred of results) {
+      // Group ROUTABLE providers
+      const routableProviderMap = new Map();
+      for (const cred of routableCreds) {
         if (!cred.providers) continue;
         const pid = cred.provider_id;
-        if (!providerMap.has(pid)) {
-          providerMap.set(pid, { ...cred.providers, matched_credentials: [] });
+        if (!routableProviderMap.has(pid)) {
+          routableProviderMap.set(pid, { ...cred.providers, matched_credentials: [] });
         }
-        providerMap.get(pid).matched_credentials.push({
+        routableProviderMap.get(pid).matched_credentials.push({
           payer: cred.payer,
           approval_date: cred.approval_date,
+          effective_date: cred.effective_date,
+          reference_number: cred.reference_number,
           notes: cred.notes
         });
       }
-      const providers = Array.from(providerMap.values()).sort((a, b) => a.last_name.localeCompare(b.last_name));
+      const routableProviders = Array.from(routableProviderMap.values()).sort((a, b) => a.last_name.localeCompare(b.last_name));
+
+      // Group PENDING providers (approved but not yet effective)
+      const pendingProviderMap = new Map();
+      for (const cred of pendingCreds) {
+        if (!cred.providers) continue;
+        const pid = cred.provider_id;
+        // Skip if already in routable (may have other routable credentials)
+        if (routableProviderMap.has(pid)) continue;
+        if (!pendingProviderMap.has(pid)) {
+          pendingProviderMap.set(pid, { ...cred.providers, matched_credentials: [], isPending: true });
+        }
+        pendingProviderMap.get(pid).matched_credentials.push({
+          payer: cred.payer,
+          approval_date: cred.approval_date,
+          effective_date: cred.effective_date,
+          reference_number: cred.reference_number,
+          notes: cred.notes
+        });
+      }
+      const pendingProviders = Array.from(pendingProviderMap.values()).sort((a, b) => a.last_name.localeCompare(b.last_name));
 
       // Log the search
       await supabase.from('routing_log').insert({
         patient_state: state,
         patient_payer: payer,
-        matched: providers.length > 0,
-        results_count: providers.length,
-        matched_provider_id: providers.length > 0 ? providers[0].id : null,
+        matched: routableProviders.length > 0,
+        results_count: routableProviders.length,
+        matched_provider_id: routableProviders.length > 0 ? routableProviders[0].id : null,
         created_by: currentUser.email
       });
 
@@ -467,12 +533,44 @@
       const payerName = payer === '*' ? 'All Payers' : payer;
 
       document.getElementById('resultsTitle').textContent = `Results for ${stateName} + ${payerName}`;
-      document.getElementById('resultsCount').textContent = `${providers.length} of ${totalProviders} providers match`;
 
-      if (providers.length > 0) {
+      // Update summary section
+      const resultsSummary = document.getElementById('resultsSummary');
+      const routableSummary = document.getElementById('routableSummary');
+      const pendingSummary = document.getElementById('pendingSummary');
+
+      if (routableProviders.length > 0) {
+        resultsSummary.classList.remove('hidden', 'bg-amber-50', 'border-amber-200');
+        resultsSummary.classList.add('bg-green-50', 'border-green-200');
+        routableSummary.textContent = `${routableProviders.length} provider${routableProviders.length !== 1 ? 's' : ''} can bill today`;
+        routableSummary.classList.remove('text-amber-800');
+        routableSummary.classList.add('text-green-800');
+      } else if (pendingProviders.length > 0) {
+        resultsSummary.classList.remove('hidden', 'bg-green-50', 'border-green-200');
+        resultsSummary.classList.add('bg-amber-50', 'border-amber-200');
+        routableSummary.textContent = `No providers can bill today`;
+        routableSummary.classList.remove('text-green-800');
+        routableSummary.classList.add('text-amber-800');
+      } else {
+        resultsSummary.classList.add('hidden');
+      }
+
+      if (pendingProviders.length > 0) {
+        pendingSummary.classList.remove('hidden');
+        pendingSummary.textContent = `${pendingProviders.length} provider${pendingProviders.length !== 1 ? 's' : ''} approved but not yet effective`;
+      } else {
+        pendingSummary.classList.add('hidden');
+      }
+
+      document.getElementById('resultsCount').textContent = `${routableProviders.length} routable, ${pendingProviders.length} pending of ${totalProviders} total providers`;
+
+      // Combine results: routable first, then pending
+      const allProviders = [...routableProviders, ...pendingProviders];
+
+      if (allProviders.length > 0) {
         document.getElementById('noResults').classList.add('hidden');
         document.getElementById('resultsContainer').classList.remove('hidden');
-        document.getElementById('resultsContainer').innerHTML = providers.map(p => renderProviderCard(p, state, payer)).join('');
+        document.getElementById('resultsContainer').innerHTML = allProviders.map(p => renderProviderCard(p, state, payer)).join('');
         feather.replace({ width: 16, height: 16 });
       } else {
         document.getElementById('resultsContainer').classList.add('hidden');

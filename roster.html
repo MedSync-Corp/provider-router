@@ -624,7 +624,10 @@
     }
 
     // Load credentials for a provider
+    // V2.1: Show effective_date and indicate routable status
     async function loadProviderCredentials(providerId) {
+      const today = new Date().toISOString().split('T')[0];
+
       const { data: creds, error } = await supabase
         .from('provider_credentials')
         .select('*')
@@ -645,13 +648,21 @@
         return;
       }
 
-      const getStatusClass = (status) => {
-        switch (status) {
-          case 'Approved': return 'badge-active';
-          case 'In Progress': return 'badge-in-progress';
-          case 'On Hold': return 'bg-gray-100 text-gray-600';
-          case 'Denied': return 'badge-blocked';
-          default: return 'bg-gray-100 text-gray-500';
+      const getStatusBadge = (cred) => {
+        if (cred.status === 'Approved') {
+          if (cred.effective_date && cred.effective_date <= today) {
+            return '<span class="badge badge-active">Routable</span>';
+          } else if (cred.effective_date && cred.effective_date > today) {
+            return '<span class="badge bg-blue-100 text-blue-800">Approved - Pending</span>';
+          } else {
+            return '<span class="badge badge-active">Approved</span>';
+          }
+        }
+        switch (cred.status) {
+          case 'In Progress': return '<span class="badge badge-in-progress">In Progress</span>';
+          case 'On Hold': return '<span class="badge bg-gray-100 text-gray-600">On Hold</span>';
+          case 'Denied': return '<span class="badge badge-blocked">Denied</span>';
+          default: return '<span class="badge bg-gray-100 text-gray-500">Unknown</span>';
         }
       };
 
@@ -664,8 +675,8 @@
               <th class="pb-2 pr-4 font-medium">State</th>
               <th class="pb-2 pr-4 font-medium">Payer</th>
               <th class="pb-2 pr-4 font-medium">Status</th>
-              <th class="pb-2 pr-4 font-medium">App Date</th>
-              <th class="pb-2 pr-4 font-medium">Approval Date</th>
+              <th class="pb-2 pr-4 font-medium">Effective Date</th>
+              <th class="pb-2 pr-4 font-medium">Ref #</th>
               <th class="pb-2 font-medium">Notes</th>
             </tr>
           </thead>
@@ -674,9 +685,9 @@
               <tr class="border-b border-gray-100">
                 <td class="py-2 pr-4 font-medium">${c.state}</td>
                 <td class="py-2 pr-4">${c.payer}</td>
-                <td class="py-2 pr-4"><span class="badge ${getStatusClass(c.status)}">${c.status || 'Unknown'}</span></td>
-                <td class="py-2 pr-4 text-gray-500">${formatCredDate(c.application_date)}</td>
-                <td class="py-2 pr-4 text-gray-500">${formatCredDate(c.approval_date)}</td>
+                <td class="py-2 pr-4">${getStatusBadge(c)}</td>
+                <td class="py-2 pr-4 text-gray-500">${formatCredDate(c.effective_date)}</td>
+                <td class="py-2 pr-4 text-gray-500 font-mono text-xs">${c.reference_number || '—'}</td>
                 <td class="py-2 text-gray-500 truncate max-w-[200px]" title="${c.notes || ''}">${c.notes || '—'}</td>
               </tr>
             `).join('')}
