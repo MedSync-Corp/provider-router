@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Finder - MedSync NP Router</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['IBM Plex Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#7030a0',
+              blue: '#3656b8',
+              cyan: '#01a7cb',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+          </svg>
+          <span class="text-xl font-bold text-gray-900">MedSync NP Router</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <a href="index.html" class="text-brand-blue font-medium border-b-2 border-brand-blue pb-1">Finder</a>
+          <a href="roster.html" class="text-gray-600 hover:text-gray-900">Roster</a>
+          <a href="dashboard.html" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+        </div>
+        <div class="flex items-center gap-4">
+          <span id="userEmail" class="text-sm text-gray-600"></span>
+          <button id="logoutBtn" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
+            <i data-feather="log-out" class="h-4 w-4"></i>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Search Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Find a Provider</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label for="stateSelect" class="block text-sm font-medium text-gray-700 mb-1">Patient State</label>
+          <select id="stateSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+            <option value="">Select a state...</option>
+          </select>
+        </div>
+        <div>
+          <label for="payerSelect" class="block text-sm font-medium text-gray-700 mb-1">Patient Payer</label>
+          <select id="payerSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+            <option value="">Select a payer...</option>
+            <option value="*">All Payers</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="activeOnlyToggle" checked class="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue">
+            <span class="text-sm text-gray-700">Active providers only</span>
+          </label>
+        </div>
+        <div class="flex items-end">
+          <button id="searchBtn" class="w-full bg-brand-blue text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2">
+            <i data-feather="search" class="h-4 w-4"></i>
+            Find Provider
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="resultsTitle" class="text-lg font-semibold text-gray-900"></h3>
+        <span id="resultsCount" class="text-sm text-gray-600"></span>
+      </div>
+      <div id="resultsContainer"></div>
+      <div id="noResults" class="hidden bg-white rounded-lg shadow p-8 text-center">
+        <div class="text-gray-400 mb-4">
+          <i data-feather="user-x" class="h-12 w-12 mx-auto"></i>
+        </div>
+        <h4 class="text-lg font-medium text-gray-900 mb-2">No providers found</h4>
+        <p id="noResultsMessage" class="text-gray-600 mb-4"></p>
+        <p id="noResultsHint" class="text-sm text-gray-500"></p>
+      </div>
+    </div>
+
+    <!-- Initial State -->
+    <div id="initialState" class="bg-white rounded-lg shadow p-8 text-center">
+      <div class="text-gray-400 mb-4">
+        <i data-feather="crosshair" class="h-12 w-12 mx-auto"></i>
+      </div>
+      <h4 class="text-lg font-medium text-gray-900 mb-2">Ready to route</h4>
+      <p class="text-gray-600">Select a state and payer to find matching providers</p>
+    </div>
+  </main>
+
+  <!-- Add Note Modal -->
+  <div id="noteModal" class="modal-backdrop hidden">
+    <div class="modal-content w-full max-w-md p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Add Contact Note</h3>
+      <p id="noteProviderName" class="text-sm text-gray-600 mb-4"></p>
+      <textarea id="noteText" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none resize-none" placeholder="Enter note..."></textarea>
+      <div class="flex justify-end gap-3 mt-4">
+        <button id="cancelNoteBtn" class="px-4 py-2 text-gray-600 hover:text-gray-900">Cancel</button>
+        <button id="saveNoteBtn" class="px-4 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-700 transition">Save Note</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth, wireLogoutButton, getCurrentUser } from './auth.js';
+    import { getSupabase } from './supabaseClient.js';
+
+    // Constants
+    const US_STATES = [
+      { code: "AL", name: "Alabama" }, { code: "AK", name: "Alaska" },
+      { code: "AZ", name: "Arizona" }, { code: "AR", name: "Arkansas" },
+      { code: "CA", name: "California" }, { code: "CO", name: "Colorado" },
+      { code: "CT", name: "Connecticut" }, { code: "DC", name: "District of Columbia" },
+      { code: "DE", name: "Delaware" }, { code: "FL", name: "Florida" },
+      { code: "GA", name: "Georgia" }, { code: "HI", name: "Hawaii" },
+      { code: "ID", name: "Idaho" }, { code: "IL", name: "Illinois" },
+      { code: "IN", name: "Indiana" }, { code: "IA", name: "Iowa" },
+      { code: "KS", name: "Kansas" }, { code: "KY", name: "Kentucky" },
+      { code: "LA", name: "Louisiana" }, { code: "ME", name: "Maine" },
+      { code: "MD", name: "Maryland" }, { code: "MA", name: "Massachusetts" },
+      { code: "MI", name: "Michigan" }, { code: "MN", name: "Minnesota" },
+      { code: "MS", name: "Mississippi" }, { code: "MO", name: "Missouri" },
+      { code: "MT", name: "Montana" }, { code: "NE", name: "Nebraska" },
+      { code: "NV", name: "Nevada" }, { code: "NH", name: "New Hampshire" },
+      { code: "NJ", name: "New Jersey" }, { code: "NM", name: "New Mexico" },
+      { code: "NY", name: "New York" }, { code: "NC", name: "North Carolina" },
+      { code: "ND", name: "North Dakota" }, { code: "OH", name: "Ohio" },
+      { code: "OK", name: "Oklahoma" }, { code: "OR", name: "Oregon" },
+      { code: "PA", name: "Pennsylvania" }, { code: "RI", name: "Rhode Island" },
+      { code: "SC", name: "South Carolina" }, { code: "SD", name: "South Dakota" },
+      { code: "TN", name: "Tennessee" }, { code: "TX", name: "Texas" },
+      { code: "UT", name: "Utah" }, { code: "VT", name: "Vermont" },
+      { code: "VA", name: "Virginia" }, { code: "WA", name: "Washington" },
+      { code: "WV", name: "West Virginia" }, { code: "WI", name: "Wisconsin" },
+      { code: "WY", name: "Wyoming" }
+    ];
+
+    const CANONICAL_PAYERS = ["Medicare", "Medicaid", "Aetna", "UHC", "BCBS", "Cigna", "Humana", "TRICARE"];
+
+    let currentUser = null;
+    let supabase = null;
+    let totalProviders = 0;
+    let noteProviderId = null;
+
+    // Toast notifications
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `
+        <i data-feather="${type === 'success' ? 'check-circle' : type === 'error' ? 'alert-circle' : 'info'}" class="h-4 w-4"></i>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      feather.replace({ width: 16, height: 16 });
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Get state name from code
+    function getStateName(code) {
+      const state = US_STATES.find(s => s.code === code);
+      return state ? state.name : code;
+    }
+
+    // Build email template
+    function buildClaimNotificationEmail(provider, state, payer) {
+      const subject = encodeURIComponent('MedSync / Vitality Consultants — Claims Submission Notification');
+      const payerText = payer !== '*' ? ` for patients covered by ${payer}` : '';
+      const body = encodeURIComponent(
+        `Hi ${provider.first_name},\n\n` +
+        `This is a courtesy notification from MedSync Operations. We are preparing to submit claims under your NPI (${provider.personal_npi}) for services rendered in ${getStateName(state)}${payerText}.\n\n` +
+        `If you have any questions or need to update your availability, please reply to this email or contact the operations team.\n\n` +
+        `Thank you for your continued partnership.\n\n` +
+        `Best regards,\nMedSync Operations Team`
+      );
+      return `mailto:${provider.email}?subject=${subject}&body=${body}`;
+    }
+
+    // Copy to clipboard
+    async function copyToClipboard(text, button) {
+      try {
+        await navigator.clipboard.writeText(text);
+        button.classList.add('copied');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i data-feather="check" class="h-4 w-4"></i> Copied';
+        feather.replace({ width: 16, height: 16 });
+        setTimeout(() => {
+          button.classList.remove('copied');
+          button.innerHTML = originalHTML;
+          feather.replace({ width: 16, height: 16 });
+        }, 1500);
+      } catch (err) {
+        showToast('Failed to copy', 'error');
+      }
+    }
+
+    // Render provider card
+    function renderProviderCard(provider, selectedState, selectedPayer) {
+      const isActive = provider.status === 'Active';
+      const statusClass = provider.status === 'Active' ? 'badge-active' :
+                          provider.status === 'In Progress' ? 'badge-in-progress' : 'badge-blocked';
+
+      const statesHtml = (provider.licensed_states || []).map(s =>
+        `<span class="badge badge-state">${s}</span>`
+      ).join(' ');
+
+      const payersHtml = (provider.contracted_payers || []).map(p => {
+        const isMatched = selectedPayer !== '*' && p === selectedPayer;
+        return `<span class="badge ${isMatched ? 'badge-payer-matched' : 'badge-payer'}">${p}</span>`;
+      }).join(' ');
+
+      const pendingPayersHtml = (provider.pending_payers || []).length > 0
+        ? `<div class="mt-2"><span class="text-sm text-gray-500 italic">Pending:</span> ${provider.pending_payers.map(p => `<span class="badge badge-pending">${p}</span>`).join(' ')}</div>`
+        : '';
+
+      const cardClass = isActive ? 'result-card' : 'result-card result-card-muted';
+
+      return `
+        <div class="${cardClass}" data-provider-id="${provider.id}">
+          <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+            <div>
+              <h4 class="text-xl font-bold text-gray-900">${provider.first_name} ${provider.last_name}</h4>
+              <span class="badge ${statusClass}">${provider.status}</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button class="copy-btn px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1" onclick="window.copyNPI('${provider.personal_npi}', this)">
+                <i data-feather="copy" class="h-4 w-4"></i> Copy NPI
+              </button>
+              ${provider.ehr_login_email ? `
+              <button class="copy-btn px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1" onclick="window.copyLogin('${provider.ehr_login_email}', this)">
+                <i data-feather="copy" class="h-4 w-4"></i> Copy Login
+              </button>
+              ` : ''}
+              ${provider.email ? `
+              <a href="${buildClaimNotificationEmail(provider, selectedState, selectedPayer)}" class="px-3 py-1 text-sm bg-brand-blue text-white hover:bg-blue-700 rounded flex items-center gap-1">
+                <i data-feather="mail" class="h-4 w-4"></i> Email Provider
+              </a>
+              ` : ''}
+              <button class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1" onclick="window.openNoteModal('${provider.id}', '${provider.first_name} ${provider.last_name}')">
+                <i data-feather="message-square" class="h-4 w-4"></i> Add Note
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <span class="text-sm text-gray-500">Personal NPI</span>
+              <p class="font-mono text-gray-900">${provider.personal_npi || '—'}</p>
+            </div>
+            <div>
+              <span class="text-sm text-gray-500">Email</span>
+              <p class="text-gray-900">${provider.email || '—'}</p>
+            </div>
+            <div>
+              <span class="text-sm text-gray-500">Mobile</span>
+              <p class="text-gray-900">${provider.mobile || '—'}</p>
+            </div>
+            <div>
+              <span class="text-sm text-gray-500">Availability</span>
+              <p class="text-gray-900">${provider.availability || '—'}</p>
+            </div>
+            <div>
+              <span class="text-sm text-gray-500">EHR Login Email</span>
+              <p class="text-gray-900">${provider.ehr_login_email || '—'}</p>
+            </div>
+            <div>
+              <span class="text-sm text-gray-500">EHR Login Password</span>
+              <div class="flex items-center gap-2">
+                <span class="password-field password-hidden text-gray-900" data-password="${provider.ehr_login_password || ''}" id="pwd-${provider.id}">
+                  ${provider.ehr_login_password ? '••••••••••' : '—'}
+                </span>
+                ${provider.ehr_login_password ? `
+                <button class="text-sm text-brand-blue hover:underline" onclick="window.togglePassword('${provider.id}', '${provider.ehr_login_password}')">Show</button>
+                <button class="text-sm text-brand-blue hover:underline" onclick="window.copyPassword('${provider.ehr_login_password}')">Copy</button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-gray-200">
+            <div class="mb-2">
+              <span class="text-sm text-gray-500">Licensed States</span>
+              <div class="mt-1 flex flex-wrap gap-1">${statesHtml || '<span class="text-gray-400">None</span>'}</div>
+            </div>
+            <div>
+              <span class="text-sm text-gray-500">Contracted Payers</span>
+              <div class="mt-1 flex flex-wrap gap-1">${payersHtml || '<span class="text-gray-400">None</span>'}</div>
+              ${pendingPayersHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Global functions for onclick handlers
+    window.copyNPI = (npi, btn) => copyToClipboard(npi, btn);
+    window.copyLogin = (email, btn) => copyToClipboard(email, btn);
+    window.copyPassword = (pwd) => {
+      navigator.clipboard.writeText(pwd);
+      showToast('Password copied to clipboard');
+    };
+    window.togglePassword = (id, pwd) => {
+      const span = document.getElementById(`pwd-${id}`);
+      const btn = span.nextElementSibling;
+      if (span.classList.contains('password-hidden')) {
+        span.textContent = pwd;
+        span.classList.remove('password-hidden');
+        btn.textContent = 'Hide';
+      } else {
+        span.textContent = '••••••••••';
+        span.classList.add('password-hidden');
+        btn.textContent = 'Show';
+      }
+    };
+    window.openNoteModal = (providerId, providerName) => {
+      noteProviderId = providerId;
+      document.getElementById('noteProviderName').textContent = `Adding note for ${providerName}`;
+      document.getElementById('noteText').value = '';
+      document.getElementById('noteModal').classList.remove('hidden');
+    };
+
+    // Search providers
+    async function searchProviders() {
+      const state = document.getElementById('stateSelect').value;
+      const payer = document.getElementById('payerSelect').value;
+      const activeOnly = document.getElementById('activeOnlyToggle').checked;
+
+      if (!state) {
+        showToast('Please select a state', 'error');
+        return;
+      }
+      if (!payer) {
+        showToast('Please select a payer', 'error');
+        return;
+      }
+
+      document.getElementById('initialState').classList.add('hidden');
+      document.getElementById('resultsSection').classList.remove('hidden');
+
+      let query = supabase
+        .from('providers')
+        .select('*')
+        .contains('licensed_states', [state]);
+
+      if (activeOnly) {
+        query = query.eq('status', 'Active');
+      }
+
+      if (payer !== '*') {
+        query = query.contains('contracted_payers', [payer]);
+      }
+
+      query = query.order('last_name');
+
+      const { data: results, error } = await query;
+
+      if (error) {
+        showToast('Error searching providers', 'error');
+        console.error(error);
+        return;
+      }
+
+      // Log the search
+      await supabase.from('routing_log').insert({
+        patient_state: state,
+        patient_payer: payer,
+        matched: results.length > 0,
+        results_count: results.length,
+        matched_provider_id: results.length > 0 ? results[0].id : null,
+        created_by: currentUser.email
+      });
+
+      const stateName = getStateName(state);
+      const payerName = payer === '*' ? 'All Payers' : payer;
+
+      document.getElementById('resultsTitle').textContent = `Results for ${stateName} + ${payerName}`;
+      document.getElementById('resultsCount').textContent = `${results.length} of ${totalProviders} providers match`;
+
+      if (results.length > 0) {
+        document.getElementById('noResults').classList.add('hidden');
+        document.getElementById('resultsContainer').classList.remove('hidden');
+        document.getElementById('resultsContainer').innerHTML = results.map(p => renderProviderCard(p, state, payer)).join('');
+        feather.replace({ width: 16, height: 16 });
+      } else {
+        document.getElementById('resultsContainer').classList.add('hidden');
+        document.getElementById('noResults').classList.remove('hidden');
+        document.getElementById('noResultsMessage').textContent = `No providers found for ${stateName} + ${payerName}`;
+        document.getElementById('noResultsHint').textContent = activeOnly
+          ? "Try toggling 'Active providers only' off to see if any In Progress providers cover this combination."
+          : "No providers of any status match this criteria.";
+        feather.replace({ width: 48, height: 48 });
+      }
+    }
+
+    // Initialize
+    async function init() {
+      try {
+        currentUser = await requireAuth();
+        supabase = await getSupabase();
+
+        document.getElementById('userEmail').textContent = currentUser.email;
+        wireLogoutButton();
+
+        // Populate state dropdown
+        const stateSelect = document.getElementById('stateSelect');
+        US_STATES.forEach(state => {
+          const opt = document.createElement('option');
+          opt.value = state.code;
+          opt.textContent = `${state.name} (${state.code})`;
+          stateSelect.appendChild(opt);
+        });
+
+        // Populate payer dropdown
+        const payerSelect = document.getElementById('payerSelect');
+        CANONICAL_PAYERS.forEach(payer => {
+          const opt = document.createElement('option');
+          opt.value = payer;
+          opt.textContent = payer;
+          payerSelect.appendChild(opt);
+        });
+
+        // Get total provider count
+        const { count } = await supabase.from('providers').select('*', { count: 'exact', head: true });
+        totalProviders = count || 0;
+
+        // Search button
+        document.getElementById('searchBtn').addEventListener('click', searchProviders);
+
+        // Note modal
+        document.getElementById('cancelNoteBtn').addEventListener('click', () => {
+          document.getElementById('noteModal').classList.add('hidden');
+        });
+
+        document.getElementById('saveNoteBtn').addEventListener('click', async () => {
+          const noteText = document.getElementById('noteText').value.trim();
+          if (!noteText) {
+            showToast('Please enter a note', 'error');
+            return;
+          }
+
+          const { error } = await supabase.from('contact_notes').insert({
+            provider_id: noteProviderId,
+            note: noteText,
+            created_by: currentUser.email
+          });
+
+          if (error) {
+            showToast('Error saving note', 'error');
+            console.error(error);
+            return;
+          }
+
+          showToast('Note saved successfully');
+          document.getElementById('noteModal').classList.add('hidden');
+        });
+
+        // Close modal on backdrop click
+        document.getElementById('noteModal').addEventListener('click', (e) => {
+          if (e.target.id === 'noteModal') {
+            document.getElementById('noteModal').classList.add('hidden');
+          }
+        });
+
+        feather.replace();
+      } catch (e) {
+        console.error('Init error:', e);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

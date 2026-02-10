@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - MedSync NP Router</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['IBM Plex Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#7030a0',
+              blue: '#3656b8',
+              cyan: '#01a7cb',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center font-sans">
+  <div class="w-full max-w-md p-8">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+      <div class="text-center mb-8">
+        <div class="flex items-center justify-center gap-2 mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+          </svg>
+          <h1 class="text-2xl font-bold text-gray-900">MedSync NP Router</h1>
+        </div>
+        <p class="text-gray-600">Sign in to access the provider routing system</p>
+      </div>
+
+      <form id="loginForm" class="space-y-6">
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition"
+            placeholder="you@medsyncorp.com"
+          >
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition"
+            placeholder="Enter your password"
+          >
+        </div>
+
+        <div id="errorMessage" class="hidden text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3"></div>
+
+        <button
+          type="submit"
+          id="submitBtn"
+          class="w-full bg-brand-blue text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue transition flex items-center justify-center gap-2"
+        >
+          <span>Sign In</span>
+          <span id="loadingSpinner" class="loading-spinner hidden"></span>
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-gray-500 text-sm mt-6">
+      MedSync Clinical Operations
+    </p>
+  </div>
+
+  <script type="module">
+    import { getCurrentUser, signIn } from './auth.js';
+
+    // Check if already authenticated
+    async function checkAuth() {
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          const redirect = sessionStorage.getItem('postLoginRedirect') || './index.html';
+          sessionStorage.removeItem('postLoginRedirect');
+          location.href = redirect;
+        }
+      } catch (e) {
+        console.error('Auth check failed:', e);
+      }
+    }
+
+    checkAuth();
+
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const errorMessage = document.getElementById('errorMessage');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.remove('hidden');
+    }
+
+    function hideError() {
+      errorMessage.classList.add('hidden');
+    }
+
+    function setLoading(loading) {
+      if (loading) {
+        submitBtn.disabled = true;
+        loadingSpinner.classList.remove('hidden');
+        submitBtn.querySelector('span:first-child').textContent = 'Signing in...';
+      } else {
+        submitBtn.disabled = false;
+        loadingSpinner.classList.add('hidden');
+        submitBtn.querySelector('span:first-child').textContent = 'Sign In';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      setLoading(true);
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      try {
+        await signIn(email, password);
+        const redirect = sessionStorage.getItem('postLoginRedirect') || './index.html';
+        sessionStorage.removeItem('postLoginRedirect');
+        location.href = redirect;
+      } catch (error) {
+        console.error('Login error:', error);
+        showError(error.message || 'Invalid email or password. Please try again.');
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>

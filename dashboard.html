@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - MedSync NP Router</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['IBM Plex Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#7030a0',
+              blue: '#3656b8',
+              cyan: '#01a7cb',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+          </svg>
+          <span class="text-xl font-bold text-gray-900">MedSync NP Router</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <a href="index.html" class="text-gray-600 hover:text-gray-900">Finder</a>
+          <a href="roster.html" class="text-gray-600 hover:text-gray-900">Roster</a>
+          <a href="dashboard.html" class="text-brand-blue font-medium border-b-2 border-brand-blue pb-1">Dashboard</a>
+        </div>
+        <div class="flex items-center gap-4">
+          <span id="userEmail" class="text-sm text-gray-600"></span>
+          <button id="logoutBtn" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
+            <i data-feather="log-out" class="h-4 w-4"></i>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <i data-feather="users" class="h-5 w-5 text-green-600"></i>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500">Active Providers</div>
+            <div class="text-2xl font-bold text-gray-900" id="statActiveProviders">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <i data-feather="map" class="h-5 w-5 text-blue-600"></i>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500">States Covered</div>
+            <div class="text-2xl font-bold text-gray-900" id="statStatesCovered">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <i data-feather="shield" class="h-5 w-5 text-purple-600"></i>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500">Payers Covered</div>
+            <div class="text-2xl font-bold text-gray-900" id="statPayersCovered">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-red-100 rounded-lg">
+            <i data-feather="alert-triangle" class="h-5 w-5 text-red-600"></i>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500">Coverage Gaps</div>
+            <div class="text-2xl font-bold text-gray-900" id="statGaps">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coverage Gap Matrix -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Coverage Gap Matrix</h2>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="priorityStatesToggle" class="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue">
+          <span class="text-sm text-gray-700">Priority States Only</span>
+        </label>
+      </div>
+      <div class="mb-4 flex flex-wrap gap-4 text-sm">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+          <span class="text-gray-600">Covered (Active NP)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-amber-100 border border-amber-300 rounded"></div>
+          <span class="text-gray-600">Pipeline (In Progress)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+          <span class="text-gray-600">Gap (No Coverage)</span>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full" id="coverageMatrix">
+          <thead>
+            <tr>
+              <th class="text-left py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50">State</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Top Unmatched Searches -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Unmatched Searches</h2>
+        <p class="text-sm text-gray-500 mb-4">State + Payer combinations with the most failed routing attempts</p>
+        <div id="unmatchedSearches" class="space-y-2">
+          <div class="text-center py-8 text-gray-500">
+            <div class="loading-spinner mx-auto mb-2"></div>
+            Loading...
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Routing Activity -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Routing Activity</h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-500 border-b">
+                <th class="pb-2 font-medium">Time</th>
+                <th class="pb-2 font-medium">State</th>
+                <th class="pb-2 font-medium">Payer</th>
+                <th class="pb-2 font-medium">Match</th>
+                <th class="pb-2 font-medium">By</th>
+              </tr>
+            </thead>
+            <tbody id="routingActivity">
+              <tr>
+                <td colspan="5" class="text-center py-8 text-gray-500">
+                  <div class="loading-spinner mx-auto mb-2"></div>
+                  Loading...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth, wireLogoutButton, getCurrentUser } from './auth.js';
+    import { getSupabase } from './supabaseClient.js';
+
+    // Constants
+    const US_STATES = [
+      { code: "AL", name: "Alabama" }, { code: "AK", name: "Alaska" },
+      { code: "AZ", name: "Arizona" }, { code: "AR", name: "Arkansas" },
+      { code: "CA", name: "California" }, { code: "CO", name: "Colorado" },
+      { code: "CT", name: "Connecticut" }, { code: "DC", name: "District of Columbia" },
+      { code: "DE", name: "Delaware" }, { code: "FL", name: "Florida" },
+      { code: "GA", name: "Georgia" }, { code: "HI", name: "Hawaii" },
+      { code: "ID", name: "Idaho" }, { code: "IL", name: "Illinois" },
+      { code: "IN", name: "Indiana" }, { code: "IA", name: "Iowa" },
+      { code: "KS", name: "Kansas" }, { code: "KY", name: "Kentucky" },
+      { code: "LA", name: "Louisiana" }, { code: "ME", name: "Maine" },
+      { code: "MD", name: "Maryland" }, { code: "MA", name: "Massachusetts" },
+      { code: "MI", name: "Michigan" }, { code: "MN", name: "Minnesota" },
+      { code: "MS", name: "Mississippi" }, { code: "MO", name: "Missouri" },
+      { code: "MT", name: "Montana" }, { code: "NE", name: "Nebraska" },
+      { code: "NV", name: "Nevada" }, { code: "NH", name: "New Hampshire" },
+      { code: "NJ", name: "New Jersey" }, { code: "NM", name: "New Mexico" },
+      { code: "NY", name: "New York" }, { code: "NC", name: "North Carolina" },
+      { code: "ND", name: "North Dakota" }, { code: "OH", name: "Ohio" },
+      { code: "OK", name: "Oklahoma" }, { code: "OR", name: "Oregon" },
+      { code: "PA", name: "Pennsylvania" }, { code: "RI", name: "Rhode Island" },
+      { code: "SC", name: "South Carolina" }, { code: "SD", name: "South Dakota" },
+      { code: "TN", name: "Tennessee" }, { code: "TX", name: "Texas" },
+      { code: "UT", name: "Utah" }, { code: "VT", name: "Vermont" },
+      { code: "VA", name: "Virginia" }, { code: "WA", name: "Washington" },
+      { code: "WV", name: "West Virginia" }, { code: "WI", name: "Wisconsin" },
+      { code: "WY", name: "Wyoming" }
+    ];
+
+    const CANONICAL_PAYERS = ["Medicare", "Medicaid", "Aetna", "UHC", "BCBS", "Cigna", "Humana", "TRICARE"];
+    const PRIORITY_STATES = ["FL", "AZ", "MS", "MI", "NV", "TX", "TN", "PA", "MT", "ID", "WA"];
+
+    let currentUser = null;
+    let supabase = null;
+    let providers = [];
+    let routingLogs = [];
+
+    // Get state name from code
+    function getStateName(code) {
+      const state = US_STATES.find(s => s.code === code);
+      return state ? state.name : code;
+    }
+
+    // Format date
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now - date;
+
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // Load providers
+    async function loadProviders() {
+      const { data, error } = await supabase.from('providers').select('*');
+      if (error) {
+        console.error(error);
+        return;
+      }
+      providers = data || [];
+    }
+
+    // Load routing logs
+    async function loadRoutingLogs() {
+      const { data, error } = await supabase
+        .from('routing_log')
+        .select('*, providers(first_name, last_name)')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) {
+        console.error(error);
+        return;
+      }
+      routingLogs = data || [];
+    }
+
+    // Calculate stats
+    function calculateStats() {
+      const activeProviders = providers.filter(p => p.status === 'Active');
+
+      // Unique states covered by active providers
+      const coveredStates = new Set();
+      activeProviders.forEach(p => {
+        (p.licensed_states || []).forEach(s => coveredStates.add(s));
+      });
+
+      // Unique payers covered by active providers
+      const coveredPayers = new Set();
+      activeProviders.forEach(p => {
+        (p.contracted_payers || []).forEach(payer => coveredPayers.add(payer));
+      });
+
+      document.getElementById('statActiveProviders').textContent = activeProviders.length;
+      document.getElementById('statStatesCovered').textContent = coveredStates.size;
+      document.getElementById('statPayersCovered').textContent = coveredPayers.size;
+
+      return { activeProviders, coveredStates, coveredPayers };
+    }
+
+    // Build coverage matrix
+    function buildCoverageMatrix(priorityOnly = false) {
+      const activeProviders = providers.filter(p => p.status === 'Active');
+      const inProgressProviders = providers.filter(p => p.status === 'In Progress');
+
+      // Determine which states to show
+      let statesToShow;
+      if (priorityOnly) {
+        statesToShow = PRIORITY_STATES;
+      } else {
+        // Show states where at least one provider (any status) is licensed
+        const allCoveredStates = new Set();
+        providers.forEach(p => {
+          (p.licensed_states || []).forEach(s => allCoveredStates.add(s));
+        });
+        statesToShow = US_STATES.filter(s => allCoveredStates.has(s.code)).map(s => s.code);
+      }
+
+      // Build coverage data
+      const coverageData = {};
+      let totalGaps = 0;
+
+      statesToShow.forEach(state => {
+        coverageData[state] = {};
+        CANONICAL_PAYERS.forEach(payer => {
+          const activeCount = activeProviders.filter(p =>
+            (p.licensed_states || []).includes(state) &&
+            (p.contracted_payers || []).includes(payer)
+          ).length;
+
+          const pipelineCount = inProgressProviders.filter(p =>
+            (p.licensed_states || []).includes(state) &&
+            ((p.contracted_payers || []).includes(payer) || (p.pending_payers || []).includes(payer))
+          ).length;
+
+          coverageData[state][payer] = { active: activeCount, pipeline: pipelineCount };
+
+          if (activeCount === 0 && pipelineCount === 0) {
+            totalGaps++;
+          }
+        });
+      });
+
+      document.getElementById('statGaps').textContent = totalGaps;
+
+      // Render matrix
+      const table = document.getElementById('coverageMatrix');
+      const thead = table.querySelector('thead tr');
+      const tbody = table.querySelector('tbody');
+
+      // Header row
+      thead.innerHTML = '<th class="text-left py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50 sticky left-0">State</th>';
+      CANONICAL_PAYERS.forEach(payer => {
+        thead.innerHTML += `<th class="text-center py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50">${payer}</th>`;
+      });
+
+      // Data rows
+      tbody.innerHTML = statesToShow.map(state => {
+        let row = `<tr><td class="py-2 px-3 text-sm font-medium text-gray-900 bg-white sticky left-0">${state}</td>`;
+        CANONICAL_PAYERS.forEach(payer => {
+          const data = coverageData[state][payer];
+          let cellClass, cellContent;
+
+          if (data.active > 0) {
+            cellClass = 'coverage-covered';
+            cellContent = data.active;
+          } else if (data.pipeline > 0) {
+            cellClass = 'coverage-pipeline';
+            cellContent = `(${data.pipeline})`;
+          } else {
+            cellClass = 'coverage-gap';
+            cellContent = '0';
+          }
+
+          row += `<td class="coverage-cell ${cellClass}">${cellContent}</td>`;
+        });
+        row += '</tr>';
+        return row;
+      }).join('');
+    }
+
+    // Render recent activity
+    function renderRecentActivity() {
+      const tbody = document.getElementById('routingActivity');
+
+      if (routingLogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No routing activity yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = routingLogs.map(log => {
+        const providerName = log.providers
+          ? `${log.providers.first_name} ${log.providers.last_name}`
+          : '—';
+
+        return `
+          <tr class="border-b border-gray-100">
+            <td class="py-2 text-gray-500">${formatDate(log.created_at)}</td>
+            <td class="py-2">${log.patient_state}</td>
+            <td class="py-2">${log.patient_payer === '*' ? 'All' : log.patient_payer}</td>
+            <td class="py-2">
+              ${log.matched
+                ? '<span class="badge badge-active">Yes</span>'
+                : '<span class="badge badge-blocked">No</span>'}
+            </td>
+            <td class="py-2 text-gray-500 truncate max-w-[150px]" title="${log.created_by || ''}">${log.created_by || '—'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render top unmatched searches
+    function renderUnmatchedSearches() {
+      const unmatchedLogs = routingLogs.filter(l => !l.matched);
+
+      // Group by state + payer
+      const grouped = {};
+      unmatchedLogs.forEach(log => {
+        const key = `${log.patient_state}|${log.patient_payer}`;
+        if (!grouped[key]) {
+          grouped[key] = { state: log.patient_state, payer: log.patient_payer, count: 0 };
+        }
+        grouped[key].count++;
+      });
+
+      // Sort by count and take top 10
+      const sorted = Object.values(grouped)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      const container = document.getElementById('unmatchedSearches');
+
+      if (sorted.length === 0) {
+        container.innerHTML = '<p class="text-center py-8 text-gray-500">No unmatched searches recorded</p>';
+        return;
+      }
+
+      container.innerHTML = sorted.map((item, index) => {
+        const payerDisplay = item.payer === '*' ? 'All Payers' : item.payer;
+        const barWidth = (item.count / sorted[0].count) * 100;
+
+        return `
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-500 w-6">${index + 1}.</span>
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-sm font-medium text-gray-900">${getStateName(item.state)} + ${payerDisplay}</span>
+                <span class="text-sm text-red-600 font-medium">${item.count} failed</span>
+              </div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-red-400 rounded-full" style="width: ${barWidth}%"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Initialize
+    async function init() {
+      try {
+        currentUser = await requireAuth();
+        supabase = await getSupabase();
+
+        document.getElementById('userEmail').textContent = currentUser.email;
+        wireLogoutButton();
+
+        // Load data
+        await Promise.all([loadProviders(), loadRoutingLogs()]);
+
+        // Render
+        calculateStats();
+        buildCoverageMatrix(false);
+        renderRecentActivity();
+        renderUnmatchedSearches();
+
+        // Priority states toggle
+        document.getElementById('priorityStatesToggle').addEventListener('change', (e) => {
+          buildCoverageMatrix(e.target.checked);
+        });
+
+        feather.replace();
+      } catch (e) {
+        console.error('Init error:', e);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
