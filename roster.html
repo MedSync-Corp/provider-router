@@ -154,7 +154,7 @@
     </div>
 
     <!-- Expanded Row Panel -->
-    <div id="detailPanel" class="hidden fixed top-16 bottom-0 right-0 w-full max-w-2xl bg-white shadow-xl z-40 overflow-y-auto">
+    <div id="detailPanel" class="hidden fixed top-16 bottom-0 right-0 w-full max-w-4xl lg:w-[55%] lg:min-w-[750px] bg-white shadow-xl z-40 overflow-y-auto">
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h3 id="detailProviderName" class="text-xl font-bold text-gray-900"></h3>
@@ -794,15 +794,15 @@
 
       const credRows = (creds || []).map(c => `
         <tr class="border-b border-gray-100" id="cred-row-${c.id}">
-          <td class="py-2 pr-4 font-medium">${c.state}</td>
-          <td class="py-2 pr-4">${c.payer}</td>
-          <td class="py-2 pr-4">${getStatusBadge(c)}</td>
-          <td class="py-2 pr-4 text-gray-500">${formatCredDate(c.effective_date)}</td>
-          <td class="py-2 pr-4 text-gray-500">${formatCredDate(c.application_date)}</td>
-          <td class="py-2 pr-4 text-gray-500 font-mono text-xs">${c.reference_number || '—'}</td>
-          <td class="py-2 text-gray-500 truncate max-w-[150px]" title="${c.notes || ''}">${c.notes || '—'}</td>
+          <td class="py-2 pr-2 font-medium">${c.state}</td>
+          <td class="py-2 pr-2">${c.payer}</td>
+          <td class="py-2 pr-2 whitespace-nowrap">${getStatusBadge(c)}</td>
+          <td class="py-2 pr-2 text-gray-500 text-xs">${formatCredDate(c.effective_date)}</td>
+          <td class="py-2 pr-2 text-gray-500 text-xs">${formatCredDate(c.application_date)}</td>
+          <td class="py-2 pr-2 text-gray-500 font-mono text-xs">${c.reference_number || '—'}</td>
+          <td class="py-2 pr-2 text-gray-500 truncate max-w-[120px] text-xs" title="${c.notes || ''}">${c.notes || '—'}</td>
           <td class="py-2">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1 flex-nowrap">
               <button onclick="window.editCredential('${c.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit">
                 <i data-feather="edit-2" class="h-4 w-4"></i>
               </button>
@@ -815,17 +815,17 @@
       `).join('');
 
       section.innerHTML = `
-        <table class="min-w-full text-sm" id="credentialsTable">
+        <table class="w-full text-sm" id="credentialsTable">
           <thead>
             <tr class="text-left text-gray-500 border-b">
-              <th class="pb-2 pr-4 font-medium">State</th>
-              <th class="pb-2 pr-4 font-medium">Payer</th>
-              <th class="pb-2 pr-4 font-medium">Status</th>
-              <th class="pb-2 pr-4 font-medium">Effective</th>
-              <th class="pb-2 pr-4 font-medium">Applied</th>
-              <th class="pb-2 pr-4 font-medium">Ref #</th>
-              <th class="pb-2 pr-4 font-medium">Notes</th>
-              <th class="pb-2 font-medium">Actions</th>
+              <th class="pb-2 pr-2 font-medium w-12">State</th>
+              <th class="pb-2 pr-2 font-medium w-28">Payer</th>
+              <th class="pb-2 pr-2 font-medium w-36 whitespace-nowrap">Status</th>
+              <th class="pb-2 pr-2 font-medium w-24">Effective</th>
+              <th class="pb-2 pr-2 font-medium w-24">Applied</th>
+              <th class="pb-2 pr-2 font-medium w-20">Ref #</th>
+              <th class="pb-2 pr-2 font-medium">Notes</th>
+              <th class="pb-2 font-medium w-20">Actions</th>
             </tr>
           </thead>
           <tbody id="credentialsTableBody">
