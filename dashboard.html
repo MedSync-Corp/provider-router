@@ -334,12 +334,10 @@
       // Determine which states to show
       let statesToShow;
       if (priorityOnly) {
-        statesToShow = PRIORITY_STATES;
+        statesToShow = [...PRIORITY_STATES].sort();
       } else {
-        // Show states where at least one credential exists
-        const allStatesWithCreds = new Set();
-        credentials.forEach(c => allStatesWithCreds.add(c.state));
-        statesToShow = US_STATES.filter(s => allStatesWithCreds.has(s.code)).map(s => s.code);
+        // Show all 50 states + DC, sorted alphabetically by state code
+        statesToShow = US_STATES.map(s => s.code).sort();
       }
 
       // Build coverage data from credentials
