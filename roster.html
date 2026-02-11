@@ -155,7 +155,7 @@
     </div>
 
     <!-- Expanded Row Panel -->
-    <div id="detailPanel" class="hidden fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-xl z-40 overflow-y-auto">
+    <div id="detailPanel" class="hidden fixed top-16 bottom-0 right-0 w-full max-w-2xl bg-white shadow-xl z-40 overflow-y-auto">
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
           <h3 id="detailProviderName" class="text-xl font-bold text-gray-900"></h3>
@@ -470,11 +470,31 @@
     }
 
     // Render table
-    function renderTable() {
+    async function renderTable() {
       const tbody = document.getElementById('providerTableBody');
       const start = (currentPage - 1) * rowsPerPage;
       const end = start + rowsPerPage;
       const pageData = filteredProviders.slice(start, end);
+      const today = new Date().toISOString().split('T')[0];
+
+      // Fetch routable credentials for blocked providers to show warning
+      const blockedIds = pageData.filter(p => p.status === 'Blocked').map(p => p.id);
+      let blockedWithCreds = new Map();
+
+      if (blockedIds.length > 0) {
+        const { data: creds } = await supabase
+          .from('provider_credentials')
+          .select('provider_id')
+          .in('provider_id', blockedIds)
+          .eq('status', 'Approved')
+          .lte('effective_date', today);
+
+        if (creds) {
+          creds.forEach(c => {
+            blockedWithCreds.set(c.provider_id, (blockedWithCreds.get(c.provider_id) || 0) + 1);
+          });
+        }
+      }
 
       tbody.innerHTML = pageData.map(p => {
         const statusClass = p.status === 'Active' ? 'badge-active' :
@@ -482,13 +502,32 @@
         const statesCount = (p.licensed_states || []).length;
         const payersCount = (p.contracted_payers || []).length;
 
+        // Check if blocked provider has routable credentials
+        const hasRoutableCreds = blockedWithCreds.has(p.id);
+        const blockReason = p.notes && p.notes.toLowerCase().includes('malpractice')
+          ? 'Missing malpractice insurance'
+          : (p.notes || 'See notes for details');
+
+        let statusHtml = '';
+        if (p.status === 'Blocked' && hasRoutableCreds) {
+          statusHtml = `
+            <div class="flex items-center gap-1">
+              <span class="badge ${statusClass}" title="Blocked: ${blockReason}">${p.status}</span>
+              <i data-feather="alert-triangle" class="h-4 w-4 text-amber-500" title="Has ${blockedWithCreds.get(p.id)} routable credential(s) but is blocked"></i>
+            </div>
+            <div class="text-xs text-red-600 mt-0.5">${blockReason}</div>
+          `;
+        } else {
+          statusHtml = `<span class="badge ${statusClass}">${p.status}</span>`;
+        }
+
         return `
           <tr class="hover:bg-gray-50 cursor-pointer" data-id="${p.id}">
             <td>
               <div class="font-medium text-gray-900">${p.first_name} ${p.last_name}</div>
               <div class="text-sm text-gray-500">${p.email || ''}</div>
             </td>
-            <td><span class="badge ${statusClass}">${p.status}</span></td>
+            <td>${statusHtml}</td>
             <td>
               <span class="badge badge-state" title="${(p.licensed_states || []).join(', ')}">${statesCount} state${statesCount !== 1 ? 's' : ''}</span>
             </td>
@@ -537,11 +576,61 @@
       const statusClass = provider.status === 'Active' ? 'badge-active' :
                           provider.status === 'In Progress' ? 'badge-in-progress' : 'badge-blocked';
 
+      // Determine block reason from notes
+      const blockReason = provider.notes && provider.notes.toLowerCase().includes('malpractice')
+        ? 'Missing Malpractice Insurance'
+        : (provider.notes ? provider.notes.split('.')[0] : 'See notes for details');
+
+      // For blocked providers, check if they have routable credentials
+      let blockedAlertHtml = '';
+      let routableCredCount = 0;
+      if (provider.status === 'Blocked') {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: creds } = await supabase
+          .from('provider_credentials')
+          .select('id')
+          .eq('provider_id', id)
+          .eq('status', 'Approved')
+          .lte('effective_date', today);
+
+        routableCredCount = creds ? creds.length : 0;
+        if (routableCredCount > 0) {
+          blockedAlertHtml = `
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+              <div class="flex items-start gap-3">
+                <i data-feather="alert-triangle" class="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+                <div>
+                  <p class="text-amber-800 font-medium">This provider has ${routableCredCount} approved credential${routableCredCount !== 1 ? 's' : ''} but is blocked</p>
+                  <p class="text-amber-700 text-sm mt-1">Resolving the block (${blockReason.toLowerCase()}) would make them routable.</p>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // Status display - show detailed reason for blocked providers
+      let statusDisplay = '';
+      if (provider.status === 'Blocked') {
+        statusDisplay = `<span class="badge ${statusClass}">Blocked — ${blockReason}</span>`;
+      } else {
+        statusDisplay = `<span class="badge ${statusClass}">${provider.status}</span>`;
+      }
+
+      // Only show In-Network Confirmed for Active providers
+      const inNetworkBadge = provider.in_network_confirmed && provider.status === 'Active'
+        ? '<span class="badge badge-active">In-Network Confirmed</span>'
+        : '';
+
       document.getElementById('detailContent').innerHTML = `
+        ${blockedAlertHtml}
         <div class="space-y-4">
           <div class="flex items-center gap-2">
-            <span class="badge ${statusClass}">${provider.status}</span>
-            ${provider.in_network_confirmed ? '<span class="badge badge-active">In-Network Confirmed</span>' : ''}
+            ${statusDisplay}
+            <button onclick="window.editProviderStatus('${provider.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit Status">
+              <i data-feather="edit-2" class="h-4 w-4"></i>
+            </button>
+            ${inNetworkBadge}
           </div>
 
           <div class="grid grid-cols-2 gap-4">
@@ -623,8 +712,51 @@
       feather.replace({ width: 16, height: 16 });
     }
 
+    // Edit provider status inline
+    window.editProviderStatus = async (providerId) => {
+      const provider = providers.find(p => p.id === providerId);
+      if (!provider) return;
+
+      const statusContainer = document.querySelector('#detailContent .flex.items-center.gap-2');
+      if (!statusContainer) return;
+
+      statusContainer.innerHTML = `
+        <select id="statusSelect" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          <option value="Active" ${provider.status === 'Active' ? 'selected' : ''}>Active</option>
+          <option value="In Progress" ${provider.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+          <option value="Blocked" ${provider.status === 'Blocked' ? 'selected' : ''}>Blocked</option>
+          <option value="Inactive" ${provider.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+        </select>
+        <button onclick="window.saveProviderStatus('${providerId}')" class="px-3 py-1 bg-brand-blue text-white rounded text-sm hover:bg-blue-700">Save</button>
+        <button onclick="window.showProviderDetail('${providerId}')" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Cancel</button>
+      `;
+    };
+
+    // Save provider status
+    window.saveProviderStatus = async (providerId) => {
+      const newStatus = document.getElementById('statusSelect').value;
+
+      const { error } = await supabase
+        .from('providers')
+        .update({ status: newStatus })
+        .eq('id', providerId);
+
+      if (error) {
+        showToast('Error updating status', 'error');
+        console.error(error);
+        return;
+      }
+
+      showToast('Status updated successfully');
+      await loadProviders();
+      await showProviderDetail(providerId);
+    };
+
+    // Make showProviderDetail accessible globally
+    window.showProviderDetail = showProviderDetail;
+
     // Load credentials for a provider
-    // V2.1: Show effective_date and indicate routable status
+    // V2.2: Editable credentials with inline editing
     async function loadProviderCredentials(providerId) {
       const today = new Date().toISOString().split('T')[0];
 
@@ -640,11 +772,6 @@
       if (error) {
         console.error(error);
         section.innerHTML = '<p class="text-red-500 text-sm">Error loading credentials.</p>';
-        return;
-      }
-
-      if (!creds || creds.length === 0) {
-        section.innerHTML = '<p class="text-gray-500 text-sm">No credentials on file. Using flat array data as fallback.</p>';
         return;
       }
 
@@ -668,33 +795,243 @@
 
       const formatCredDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
+      const credRows = (creds || []).map(c => `
+        <tr class="border-b border-gray-100" id="cred-row-${c.id}">
+          <td class="py-2 pr-4 font-medium">${c.state}</td>
+          <td class="py-2 pr-4">${c.payer}</td>
+          <td class="py-2 pr-4">${getStatusBadge(c)}</td>
+          <td class="py-2 pr-4 text-gray-500">${formatCredDate(c.effective_date)}</td>
+          <td class="py-2 pr-4 text-gray-500">${formatCredDate(c.application_date)}</td>
+          <td class="py-2 pr-4 text-gray-500 font-mono text-xs">${c.reference_number || '—'}</td>
+          <td class="py-2 text-gray-500 truncate max-w-[150px]" title="${c.notes || ''}">${c.notes || '—'}</td>
+          <td class="py-2">
+            <div class="flex items-center gap-1">
+              <button onclick="window.editCredential('${c.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit">
+                <i data-feather="edit-2" class="h-4 w-4"></i>
+              </button>
+              <button onclick="window.deleteCredential('${c.id}')" class="p-1 text-gray-400 hover:text-red-600" title="Delete">
+                <i data-feather="trash-2" class="h-4 w-4"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
       section.innerHTML = `
-        <table class="min-w-full text-sm">
+        <table class="min-w-full text-sm" id="credentialsTable">
           <thead>
             <tr class="text-left text-gray-500 border-b">
               <th class="pb-2 pr-4 font-medium">State</th>
               <th class="pb-2 pr-4 font-medium">Payer</th>
               <th class="pb-2 pr-4 font-medium">Status</th>
-              <th class="pb-2 pr-4 font-medium">Effective Date</th>
+              <th class="pb-2 pr-4 font-medium">Effective</th>
+              <th class="pb-2 pr-4 font-medium">Applied</th>
               <th class="pb-2 pr-4 font-medium">Ref #</th>
-              <th class="pb-2 font-medium">Notes</th>
+              <th class="pb-2 pr-4 font-medium">Notes</th>
+              <th class="pb-2 font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            ${creds.map(c => `
-              <tr class="border-b border-gray-100">
-                <td class="py-2 pr-4 font-medium">${c.state}</td>
-                <td class="py-2 pr-4">${c.payer}</td>
-                <td class="py-2 pr-4">${getStatusBadge(c)}</td>
-                <td class="py-2 pr-4 text-gray-500">${formatCredDate(c.effective_date)}</td>
-                <td class="py-2 pr-4 text-gray-500 font-mono text-xs">${c.reference_number || '—'}</td>
-                <td class="py-2 text-gray-500 truncate max-w-[200px]" title="${c.notes || ''}">${c.notes || '—'}</td>
-              </tr>
-            `).join('')}
+          <tbody id="credentialsTableBody">
+            ${credRows || '<tr><td colspan="8" class="py-4 text-gray-500 text-center">No credentials on file</td></tr>'}
           </tbody>
         </table>
+        <button onclick="window.addCredential('${providerId}')" class="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium flex items-center gap-2">
+          <i data-feather="plus" class="h-4 w-4"></i>
+          Add Credential
+        </button>
       `;
+
+      feather.replace({ width: 16, height: 16 });
     }
+
+    // Credential status options
+    const CREDENTIAL_STATUSES = ['Approved', 'In Progress', 'On Hold', 'Denied'];
+
+    // Edit credential inline
+    window.editCredential = async (credId) => {
+      const { data: cred, error } = await supabase
+        .from('provider_credentials')
+        .select('*')
+        .eq('id', credId)
+        .single();
+
+      if (error || !cred) {
+        showToast('Error loading credential', 'error');
+        return;
+      }
+
+      const row = document.getElementById(`cred-row-${credId}`);
+      if (!row) return;
+
+      const formatDateInput = (d) => d ? d.split('T')[0] : '';
+
+      row.innerHTML = `
+        <td class="py-2 pr-2">
+          <select id="edit-state-${credId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${US_STATES.map(s => `<option value="${s.code}" ${s.code === cred.state ? 'selected' : ''}>${s.code}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="edit-payer-${credId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${ALL_PAYERS.map(p => `<option value="${p}" ${p === cred.payer ? 'selected' : ''}>${p}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="edit-status-${credId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${CREDENTIAL_STATUSES.map(s => `<option value="${s}" ${s === cred.status ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <input type="date" id="edit-effective-${credId}" value="${formatDateInput(cred.effective_date)}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2 pr-2">
+          <input type="date" id="edit-application-${credId}" value="${formatDateInput(cred.application_date)}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2 pr-2">
+          <input type="text" id="edit-ref-${credId}" value="${cred.reference_number || ''}" placeholder="Ref #" class="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono">
+        </td>
+        <td class="py-2 pr-2">
+          <input type="text" id="edit-notes-${credId}" value="${cred.notes || ''}" placeholder="Notes" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2">
+          <div class="flex items-center gap-1">
+            <button onclick="window.saveCredential('${credId}')" class="px-2 py-1 bg-brand-blue text-white rounded text-xs hover:bg-blue-700">Save</button>
+            <button onclick="window.loadProviderCredentials('${cred.provider_id}')" class="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">Cancel</button>
+          </div>
+        </td>
+      `;
+    };
+
+    // Save credential
+    window.saveCredential = async (credId) => {
+      const updateData = {
+        state: document.getElementById(`edit-state-${credId}`).value,
+        payer: document.getElementById(`edit-payer-${credId}`).value,
+        status: document.getElementById(`edit-status-${credId}`).value,
+        effective_date: document.getElementById(`edit-effective-${credId}`).value || null,
+        application_date: document.getElementById(`edit-application-${credId}`).value || null,
+        reference_number: document.getElementById(`edit-ref-${credId}`).value || null,
+        notes: document.getElementById(`edit-notes-${credId}`).value || null
+      };
+
+      const { error } = await supabase
+        .from('provider_credentials')
+        .update(updateData)
+        .eq('id', credId);
+
+      if (error) {
+        showToast('Error saving credential', 'error');
+        console.error(error);
+        return;
+      }
+
+      showToast('Credential updated successfully');
+      await loadProviderCredentials(detailProviderId);
+    };
+
+    // Delete credential
+    window.deleteCredential = async (credId) => {
+      if (!confirm('Are you sure you want to delete this credential? This cannot be undone.')) {
+        return;
+      }
+
+      const { error } = await supabase
+        .from('provider_credentials')
+        .delete()
+        .eq('id', credId);
+
+      if (error) {
+        showToast('Error deleting credential', 'error');
+        console.error(error);
+        return;
+      }
+
+      showToast('Credential deleted');
+      await loadProviderCredentials(detailProviderId);
+    };
+
+    // Add new credential
+    window.addCredential = (providerId) => {
+      const tbody = document.getElementById('credentialsTableBody');
+      if (!tbody) return;
+
+      const newRowId = 'new-cred';
+
+      // Check if already adding
+      if (document.getElementById(`cred-row-${newRowId}`)) return;
+
+      const newRow = document.createElement('tr');
+      newRow.id = `cred-row-${newRowId}`;
+      newRow.className = 'border-b border-gray-100 bg-green-50';
+      newRow.innerHTML = `
+        <td class="py-2 pr-2">
+          <select id="edit-state-${newRowId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${US_STATES.map(s => `<option value="${s.code}">${s.code}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="edit-payer-${newRowId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${ALL_PAYERS.map(p => `<option value="${p}">${p}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="edit-status-${newRowId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${CREDENTIAL_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <input type="date" id="edit-effective-${newRowId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2 pr-2">
+          <input type="date" id="edit-application-${newRowId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2 pr-2">
+          <input type="text" id="edit-ref-${newRowId}" placeholder="Ref #" class="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono">
+        </td>
+        <td class="py-2 pr-2">
+          <input type="text" id="edit-notes-${newRowId}" placeholder="Notes" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2">
+          <div class="flex items-center gap-1">
+            <button onclick="window.saveNewCredential('${providerId}')" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">Add</button>
+            <button onclick="document.getElementById('cred-row-${newRowId}').remove()" class="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">Cancel</button>
+          </div>
+        </td>
+      `;
+
+      tbody.insertBefore(newRow, tbody.firstChild);
+    };
+
+    // Save new credential
+    window.saveNewCredential = async (providerId) => {
+      const newRowId = 'new-cred';
+      const insertData = {
+        provider_id: providerId,
+        state: document.getElementById(`edit-state-${newRowId}`).value,
+        payer: document.getElementById(`edit-payer-${newRowId}`).value,
+        status: document.getElementById(`edit-status-${newRowId}`).value,
+        effective_date: document.getElementById(`edit-effective-${newRowId}`).value || null,
+        application_date: document.getElementById(`edit-application-${newRowId}`).value || null,
+        reference_number: document.getElementById(`edit-ref-${newRowId}`).value || null,
+        notes: document.getElementById(`edit-notes-${newRowId}`).value || null
+      };
+
+      const { error } = await supabase
+        .from('provider_credentials')
+        .insert(insertData);
+
+      if (error) {
+        showToast('Error adding credential', 'error');
+        console.error(error);
+        return;
+      }
+
+      showToast('Credential added successfully');
+      await loadProviderCredentials(providerId);
+    };
+
+    // Make loadProviderCredentials accessible globally for cancel button
+    window.loadProviderCredentials = loadProviderCredentials;
 
     // Load contact notes
     async function loadContactNotes(providerId) {

@@ -472,9 +472,14 @@
         return;
       }
 
-      // Filter by provider status if toggle is on
+      // Filter by provider status - ALWAYS exclude Blocked providers from Finder
+      // Blocked providers cannot be used for routing regardless of credentials
       let routableCreds = routableResult.data || [];
       let pendingCreds = pendingResult.data || [];
+
+      // Always filter out Blocked providers - they can't be used for routing
+      routableCreds = routableCreds.filter(c => c.providers && c.providers.status !== 'Blocked');
+      pendingCreds = pendingCreds.filter(c => c.providers && c.providers.status !== 'Blocked');
 
       if (activeOnly) {
         routableCreds = routableCreds.filter(c => c.providers && c.providers.status === 'Active');

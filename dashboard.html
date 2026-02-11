@@ -316,9 +316,20 @@
     }
 
     // Build coverage matrix using provider_credentials
-    // V2.1: 4-color matrix: Green (routable), Blue (approved-pending), Amber (in progress), Red (gap)
+    // V2.2: 4-color matrix: Green (routable), Blue (approved-pending), Amber (in progress), Red (gap)
+    // Blocked providers are NOT counted in green cells - they can't be billed through
     function buildCoverageMatrix(priorityOnly = false) {
       const today = new Date().toISOString().split('T')[0];
+
+      // Count blocked providers with approved credentials (for footnote)
+      const blockedWithCreds = new Set();
+      credentials.forEach(c => {
+        if (c.status === 'Approved' && c.effective_date && c.effective_date <= today &&
+            c.providers && c.providers.status === 'Blocked') {
+          blockedWithCreds.add(c.provider_id);
+        }
+      });
+      const blockedCount = blockedWithCreds.size;
 
       // Determine which states to show
       let statesToShow;
@@ -339,6 +350,7 @@
         coverageData[state] = {};
         CANONICAL_PAYERS.forEach(payer => {
           // ROUTABLE NOW: Active provider + Approved + effective_date <= today
+          // NOTE: Blocked providers are explicitly excluded - they can't be billed through
           const routableSet = new Set();
           credentials.forEach(c => {
             if (c.state === state && c.payer === payer && c.status === 'Approved' &&
@@ -349,7 +361,7 @@
           });
           const routableCount = routableSet.size;
 
-          // APPROVED-PENDING: Approved but effective_date > today (Active provider)
+          // APPROVED-PENDING: Approved but effective_date > today (Active provider only)
           const approvedPendingSet = new Set();
           credentials.forEach(c => {
             if (c.state === state && c.payer === payer && c.status === 'Approved' &&
@@ -360,10 +372,11 @@
           });
           const approvedPendingCount = approvedPendingSet.size;
 
-          // IN PROGRESS: status = 'In Progress' (any provider status)
+          // IN PROGRESS: status = 'In Progress' (any provider status except Blocked)
           const inProgressSet = new Set();
           credentials.forEach(c => {
-            if (c.state === state && c.payer === payer && c.status === 'In Progress') {
+            if (c.state === state && c.payer === payer && c.status === 'In Progress' &&
+                c.providers && c.providers.status !== 'Blocked') {
               inProgressSet.add(c.provider_id);
             }
           });
@@ -424,6 +437,33 @@
         row += '</tr>';
         return row;
       }).join('');
+
+      // Add footnote for blocked providers with credentials
+      const footnoteContainer = document.getElementById('blockedFootnote');
+      if (blockedCount > 0) {
+        if (!footnoteContainer) {
+          const matrixContainer = table.parentElement;
+          const footnote = document.createElement('div');
+          footnote.id = 'blockedFootnote';
+          footnote.className = 'mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2';
+          footnote.innerHTML = `
+            <i data-feather="alert-triangle" class="h-5 w-5 text-amber-600 flex-shrink-0"></i>
+            <p class="text-sm text-amber-800">
+              <strong>${blockedCount} provider${blockedCount !== 1 ? 's have' : ' has'} approved credentials but ${blockedCount !== 1 ? 'are' : 'is'} blocked</strong>
+              (not counted in green cells). Resolving blocks could increase coverage.
+            </p>
+          `;
+          matrixContainer.appendChild(footnote);
+          feather.replace({ width: 20, height: 20 });
+        } else {
+          footnoteContainer.querySelector('p').innerHTML = `
+            <strong>${blockedCount} provider${blockedCount !== 1 ? 's have' : ' has'} approved credentials but ${blockedCount !== 1 ? 'are' : 'is'} blocked</strong>
+            (not counted in green cells). Resolving blocks could increase coverage.
+          `;
+        }
+      } else if (footnoteContainer) {
+        footnoteContainer.remove();
+      }
     }
 
     // Render recent activity
