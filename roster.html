@@ -125,7 +125,6 @@
               <th class="sortable" data-sort="states">States <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
               <th class="sortable" data-sort="payers">Payers <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
               <th class="sortable" data-sort="npi">NPI <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
-              <th>EHR Login</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -515,7 +514,6 @@
               <span class="badge ${statusClass}" title="Blocked: ${blockReason}">${p.status}</span>
               <i data-feather="alert-triangle" class="h-4 w-4 text-amber-500" title="Has ${blockedWithCreds.get(p.id)} routable credential(s) but is blocked"></i>
             </div>
-            <div class="text-xs text-red-600 mt-0.5">${blockReason}</div>
           `;
         } else {
           statusHtml = `<span class="badge ${statusClass}">${p.status}</span>`;
@@ -535,7 +533,6 @@
               <span class="badge badge-payer" title="${(p.contracted_payers || []).join(', ')}">${payersCount} payer${payersCount !== 1 ? 's' : ''}</span>
             </td>
             <td class="font-mono text-sm">${p.personal_npi || '—'}</td>
-            <td class="text-sm">${p.ehr_login_email || '—'}</td>
             <td>
               <div class="flex items-center gap-2">
                 <button class="p-1 text-gray-400 hover:text-brand-blue" onclick="event.stopPropagation(); window.editProvider('${p.id}')" title="Edit">
