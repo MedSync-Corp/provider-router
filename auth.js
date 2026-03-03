@@ -1,9 +1,17 @@
-import { getSupabase } from './supabaseClient.js';
+import { apiRequest, clearAuthSession, getStoredUser, storeAuthSession } from './apiClient.js';
 
 export async function getCurrentUser() {
-  const supabase = await getSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.user || null;
+  const cached = getStoredUser();
+  if (cached) return cached;
+
+  try {
+    const me = await apiRequest('/auth/me');
+    const user = { sub: me.sub, email: me.email };
+    storeAuthSession({ user });
+    return user;
+  } catch (_) {
+    return null;
+  }
 }
 
 export async function requireAuth(redirect = './login.html') {
@@ -17,15 +25,24 @@ export async function requireAuth(redirect = './login.html') {
 }
 
 export async function signIn(email, password) {
-  const supabase = await getSupabase();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  return data.user;
+  const data = await apiRequest('/auth/login', {
+    method: 'POST',
+    auth: false,
+    body: { email, password },
+  });
+
+  const user = data.user || { email };
+  storeAuthSession({
+    id_token: data.id_token,
+    user,
+    expires_at: data.expires_at,
+  });
+
+  return user;
 }
 
 export async function signOut() {
-  const supabase = await getSupabase();
-  await supabase.auth.signOut();
+  clearAuthSession();
   location.href = './login.html';
 }
 
