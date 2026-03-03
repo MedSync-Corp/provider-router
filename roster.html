@@ -313,7 +313,7 @@
 
   <script type="module">
     import { requireAuth, wireLogoutButton, getCurrentUser } from './auth.js';
-    import { getSupabase } from './supabaseClient.js';
+    import { apiRequest } from './apiClient.js';
 
     // Constants
     const US_STATES = [
@@ -350,7 +350,6 @@
     const ALL_PAYERS = [...CANONICAL_PAYERS, ...OTHER_PAYERS];
 
     let currentUser = null;
-    let supabase = null;
     let providers = [];
     let filteredProviders = [];
     let currentPage = 1;
@@ -359,6 +358,7 @@
     let sortDirection = 'asc';
     let deleteProviderId = null;
     let detailProviderId = null;
+    const providerCredentialsByID = new Map();
 
     // Toast notifications
     function showToast(message, type = 'success') {
@@ -387,13 +387,14 @@
 
     // Load providers
     async function loadProviders() {
-      const { data, error } = await supabase.from('providers').select('*').order('last_name');
-      if (error) {
+      try {
+        const result = await apiRequest('/providers?page=1&page_size=1000');
+        providers = result.items || [];
+      } catch (error) {
         showToast('Error loading providers', 'error');
         console.error(error);
         return;
       }
-      providers = data || [];
       updateStats();
       applyFilters();
     }
@@ -481,18 +482,18 @@
       let blockedWithCreds = new Map();
 
       if (blockedIds.length > 0) {
-        const { data: creds } = await supabase
-          .from('provider_credentials')
-          .select('provider_id')
-          .in('provider_id', blockedIds)
-          .eq('status', 'Approved')
-          .lte('effective_date', today);
-
-        if (creds) {
-          creds.forEach(c => {
-            blockedWithCreds.set(c.provider_id, (blockedWithCreds.get(c.provider_id) || 0) + 1);
-          });
-        }
+        await Promise.all(blockedIds.map(async (providerId) => {
+          try {
+            const detail = await apiRequest(`/providers/${providerId}`);
+            const creds = detail.credentials || [];
+            const count = creds.filter(c => c.status === 'Approved' && c.effective_date && c.effective_date <= today).length;
+            if (count > 0) {
+              blockedWithCreds.set(providerId, count);
+            }
+          } catch (_) {
+            // Keep table responsive if detail lookup fails for one provider.
+          }
+        }));
       }
 
       tbody.innerHTML = pageData.map(p => {
@@ -564,10 +565,20 @@
 
     // Show provider detail panel
     async function showProviderDetail(id) {
-      const provider = providers.find(p => p.id === id);
+      let provider = providers.find(p => p.id === id);
       if (!provider) return;
 
       detailProviderId = id;
+      let providerCreds = [];
+      try {
+        const detail = await apiRequest(`/providers/${id}`);
+        if (detail.provider) {
+          provider = detail.provider;
+        }
+        providerCreds = detail.credentials || [];
+        providerCredentialsByID.set(id, providerCreds);
+      } catch (_) {}
+
       document.getElementById('detailProviderName').textContent = `${provider.first_name} ${provider.last_name}`;
 
       const statusClass = provider.status === 'Active' ? 'badge-active' :
@@ -583,14 +594,7 @@
       let routableCredCount = 0;
       if (provider.status === 'Blocked') {
         const today = new Date().toISOString().split('T')[0];
-        const { data: creds } = await supabase
-          .from('provider_credentials')
-          .select('id')
-          .eq('provider_id', id)
-          .eq('status', 'Approved')
-          .lte('effective_date', today);
-
-        routableCredCount = creds ? creds.length : 0;
+        routableCredCount = providerCreds.filter(c => c.status === 'Approved' && c.effective_date && c.effective_date <= today).length;
         if (routableCredCount > 0) {
           blockedAlertHtml = `
             <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
@@ -733,12 +737,12 @@
     window.saveProviderStatus = async (providerId) => {
       const newStatus = document.getElementById('statusSelect').value;
 
-      const { error } = await supabase
-        .from('providers')
-        .update({ status: newStatus })
-        .eq('id', providerId);
-
-      if (error) {
+      try {
+        await apiRequest(`/providers/${providerId}/status`, {
+          method: 'PATCH',
+          body: { status: newStatus },
+        });
+      } catch (error) {
         showToast('Error updating status', 'error');
         console.error(error);
         return;
@@ -757,16 +761,13 @@
     async function loadProviderCredentials(providerId) {
       const today = new Date().toISOString().split('T')[0];
 
-      const { data: creds, error } = await supabase
-        .from('provider_credentials')
-        .select('*')
-        .eq('provider_id', providerId)
-        .order('state')
-        .order('payer');
-
       const section = document.getElementById('credentialsSection');
-
-      if (error) {
+      let creds = [];
+      try {
+        const detail = await apiRequest(`/providers/${providerId}`);
+        creds = detail.credentials || [];
+        providerCredentialsByID.set(providerId, creds);
+      } catch (error) {
         console.error(error);
         section.innerHTML = '<p class="text-red-500 text-sm">Error loading credentials.</p>';
         return;
@@ -846,13 +847,16 @@
 
     // Edit credential inline
     window.editCredential = async (credId) => {
-      const { data: cred, error } = await supabase
-        .from('provider_credentials')
-        .select('*')
-        .eq('id', credId)
-        .single();
+      let cred = (providerCredentialsByID.get(detailProviderId) || []).find(c => c.id === credId);
+      if (!cred) {
+        try {
+          const detail = await apiRequest(`/providers/${detailProviderId}`);
+          providerCredentialsByID.set(detailProviderId, detail.credentials || []);
+          cred = (detail.credentials || []).find(c => c.id === credId);
+        } catch (_) {}
+      }
 
-      if (error || !cred) {
+      if (!cred) {
         showToast('Error loading credential', 'error');
         return;
       }
@@ -911,12 +915,12 @@
         notes: document.getElementById(`edit-notes-${credId}`).value || null
       };
 
-      const { error } = await supabase
-        .from('provider_credentials')
-        .update(updateData)
-        .eq('id', credId);
-
-      if (error) {
+      try {
+        await apiRequest(`/providers/${detailProviderId}/credentials/${credId}`, {
+          method: 'PUT',
+          body: updateData,
+        });
+      } catch (error) {
         showToast('Error saving credential', 'error');
         console.error(error);
         return;
@@ -932,12 +936,11 @@
         return;
       }
 
-      const { error } = await supabase
-        .from('provider_credentials')
-        .delete()
-        .eq('id', credId);
-
-      if (error) {
+      try {
+        await apiRequest(`/providers/${detailProviderId}/credentials/${credId}`, {
+          method: 'DELETE',
+        });
+      } catch (error) {
         showToast('Error deleting credential', 'error');
         console.error(error);
         return;
@@ -1013,11 +1016,12 @@
         notes: document.getElementById(`edit-notes-${newRowId}`).value || null
       };
 
-      const { error } = await supabase
-        .from('provider_credentials')
-        .insert(insertData);
-
-      if (error) {
+      try {
+        await apiRequest(`/providers/${providerId}/credentials`, {
+          method: 'POST',
+          body: insertData,
+        });
+      } catch (error) {
         showToast('Error adding credential', 'error');
         console.error(error);
         return;
@@ -1032,13 +1036,11 @@
 
     // Load contact notes
     async function loadContactNotes(providerId) {
-      const { data: notes, error } = await supabase
-        .from('contact_notes')
-        .select('*')
-        .eq('provider_id', providerId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
+      let notes = [];
+      try {
+        const data = await apiRequest(`/providers/${providerId}/notes?limit=200`);
+        notes = data.items || [];
+      } catch (error) {
         console.error(error);
         return;
       }
@@ -1138,9 +1140,23 @@
 
       let error;
       if (id) {
-        ({ error } = await supabase.from('providers').update(providerData).eq('id', id));
+        try {
+          await apiRequest(`/providers/${id}`, {
+            method: 'PUT',
+            body: providerData,
+          });
+        } catch (err) {
+          error = err;
+        }
       } else {
-        ({ error } = await supabase.from('providers').insert(providerData));
+        try {
+          await apiRequest('/providers', {
+            method: 'POST',
+            body: providerData,
+          });
+        } catch (err) {
+          error = err;
+        }
       }
 
       if (error) {
@@ -1164,8 +1180,9 @@
     async function confirmDelete() {
       if (!deleteProviderId) return;
 
-      const { error } = await supabase.from('providers').delete().eq('id', deleteProviderId);
-      if (error) {
+      try {
+        await apiRequest(`/providers/${deleteProviderId}`, { method: 'DELETE' });
+      } catch (error) {
         showToast('Error deleting provider', 'error');
         console.error(error);
         return;
@@ -1192,13 +1209,12 @@
         return;
       }
 
-      const { error } = await supabase.from('contact_notes').insert({
-        provider_id: detailProviderId,
-        note: noteText,
-        created_by: currentUser.email
-      });
-
-      if (error) {
+      try {
+        await apiRequest(`/providers/${detailProviderId}/notes`, {
+          method: 'POST',
+          body: { note: noteText },
+        });
+      } catch (error) {
         showToast('Error saving note', 'error');
         console.error(error);
         return;
@@ -1213,7 +1229,6 @@
     async function init() {
       try {
         currentUser = await requireAuth();
-        supabase = await getSupabase();
 
         document.getElementById('userEmail').textContent = currentUser.email;
         wireLogoutButton();

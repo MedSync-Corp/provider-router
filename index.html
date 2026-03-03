@@ -140,7 +140,7 @@
 
   <script type="module">
     import { requireAuth, wireLogoutButton, getCurrentUser } from './auth.js';
-    import { getSupabase } from './supabaseClient.js';
+    import { apiRequest } from './apiClient.js';
 
     // Constants
     const US_STATES = [
@@ -176,7 +176,6 @@
     const OTHER_PAYERS = ["Claritev/Multiplan", "Ambetter", "Devoted Health", "Oscar", "Optum"];
 
     let currentUser = null;
-    let supabase = null;
     let totalProviders = 0;
     let noteProviderId = null;
 
@@ -420,13 +419,11 @@
       document.getElementById('noteModal').classList.remove('hidden');
     };
 
-    // Search providers using provider_credentials table
-    // V2.1: Only return providers who can bill TODAY (effective_date <= today)
+    // Search providers via MedSync API provider-router endpoint.
     async function searchProviders() {
       const state = document.getElementById('stateSelect').value;
       const payer = document.getElementById('payerSelect').value;
       const activeOnly = document.getElementById('activeOnlyToggle').checked;
-      const today = new Date().toISOString().split('T')[0];
 
       if (!state) {
         showToast('Please select a state', 'error');
@@ -440,99 +437,26 @@
       document.getElementById('initialState').classList.add('hidden');
       document.getElementById('resultsSection').classList.remove('hidden');
 
-      // Query ROUTABLE credentials: Approved AND effective_date <= today
-      let routableQuery = supabase
-        .from('provider_credentials')
-        .select('*, providers(*)')
-        .eq('state', state)
-        .eq('status', 'Approved')
-        .lte('effective_date', today);
-
-      if (payer !== '*') {
-        routableQuery = routableQuery.eq('payer', payer);
-      }
-
-      // Query PENDING credentials: Approved BUT effective_date > today
-      let pendingQuery = supabase
-        .from('provider_credentials')
-        .select('*, providers(*)')
-        .eq('state', state)
-        .eq('status', 'Approved')
-        .gt('effective_date', today);
-
-      if (payer !== '*') {
-        pendingQuery = pendingQuery.eq('payer', payer);
-      }
-
-      const [routableResult, pendingResult] = await Promise.all([routableQuery, pendingQuery]);
-
-      if (routableResult.error || pendingResult.error) {
+      let data;
+      try {
+        data = await apiRequest('/routing/search', {
+          method: 'POST',
+          body: {
+            state,
+            payer,
+            active_only: activeOnly,
+          },
+        });
+      } catch (error) {
         showToast('Error searching providers', 'error');
-        console.error(routableResult.error || pendingResult.error);
+        console.error(error);
         return;
       }
 
-      // Filter by provider status - ALWAYS exclude Blocked providers from Finder
-      // Blocked providers cannot be used for routing regardless of credentials
-      let routableCreds = routableResult.data || [];
-      let pendingCreds = pendingResult.data || [];
-
-      // Always filter out Blocked providers - they can't be used for routing
-      routableCreds = routableCreds.filter(c => c.providers && c.providers.status !== 'Blocked');
-      pendingCreds = pendingCreds.filter(c => c.providers && c.providers.status !== 'Blocked');
-
-      if (activeOnly) {
-        routableCreds = routableCreds.filter(c => c.providers && c.providers.status === 'Active');
-        pendingCreds = pendingCreds.filter(c => c.providers && c.providers.status === 'Active');
-      }
-
-      // Group ROUTABLE providers
-      const routableProviderMap = new Map();
-      for (const cred of routableCreds) {
-        if (!cred.providers) continue;
-        const pid = cred.provider_id;
-        if (!routableProviderMap.has(pid)) {
-          routableProviderMap.set(pid, { ...cred.providers, matched_credentials: [] });
-        }
-        routableProviderMap.get(pid).matched_credentials.push({
-          payer: cred.payer,
-          approval_date: cred.approval_date,
-          effective_date: cred.effective_date,
-          reference_number: cred.reference_number,
-          notes: cred.notes
-        });
-      }
-      const routableProviders = Array.from(routableProviderMap.values()).sort((a, b) => a.last_name.localeCompare(b.last_name));
-
-      // Group PENDING providers (approved but not yet effective)
-      const pendingProviderMap = new Map();
-      for (const cred of pendingCreds) {
-        if (!cred.providers) continue;
-        const pid = cred.provider_id;
-        // Skip if already in routable (may have other routable credentials)
-        if (routableProviderMap.has(pid)) continue;
-        if (!pendingProviderMap.has(pid)) {
-          pendingProviderMap.set(pid, { ...cred.providers, matched_credentials: [], isPending: true });
-        }
-        pendingProviderMap.get(pid).matched_credentials.push({
-          payer: cred.payer,
-          approval_date: cred.approval_date,
-          effective_date: cred.effective_date,
-          reference_number: cred.reference_number,
-          notes: cred.notes
-        });
-      }
-      const pendingProviders = Array.from(pendingProviderMap.values()).sort((a, b) => a.last_name.localeCompare(b.last_name));
-
-      // Log the search
-      await supabase.from('routing_log').insert({
-        patient_state: state,
-        patient_payer: payer,
-        matched: routableProviders.length > 0,
-        results_count: routableProviders.length,
-        matched_provider_id: routableProviders.length > 0 ? routableProviders[0].id : null,
-        created_by: currentUser.email
-      });
+      const routableProviders = (data.routable_providers || []).sort((a, b) => a.last_name.localeCompare(b.last_name));
+      const pendingProviders = (data.pending_providers || []).map(p => ({ ...p, isPending: true }))
+        .sort((a, b) => a.last_name.localeCompare(b.last_name));
+      totalProviders = data.total_providers || totalProviders;
 
       const stateName = getStateName(state);
       const payerName = payer === '*' ? 'All Payers' : payer;
@@ -592,7 +516,6 @@
     async function init() {
       try {
         currentUser = await requireAuth();
-        supabase = await getSupabase();
 
         document.getElementById('userEmail').textContent = currentUser.email;
         wireLogoutButton();
@@ -632,8 +555,12 @@
         payerSelect.appendChild(otherGroup);
 
         // Get total provider count
-        const { count } = await supabase.from('providers').select('*', { count: 'exact', head: true });
-        totalProviders = count || 0;
+        try {
+          const summary = await apiRequest('/summary');
+          totalProviders = summary.total || 0;
+        } catch (_) {
+          totalProviders = 0;
+        }
 
         // Search button
         document.getElementById('searchBtn').addEventListener('click', searchProviders);
@@ -650,13 +577,12 @@
             return;
           }
 
-          const { error } = await supabase.from('contact_notes').insert({
-            provider_id: noteProviderId,
-            note: noteText,
-            created_by: currentUser.email
-          });
-
-          if (error) {
+          try {
+            await apiRequest(`/providers/${noteProviderId}/notes`, {
+              method: 'POST',
+              body: { note: noteText },
+            });
+          } catch (error) {
             showToast('Error saving note', 'error');
             console.error(error);
             return;

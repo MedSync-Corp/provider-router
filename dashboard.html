@@ -190,7 +190,7 @@
 
   <script type="module">
     import { requireAuth, wireLogoutButton, getCurrentUser } from './auth.js';
-    import { getSupabase } from './supabaseClient.js';
+    import { apiRequest } from './apiClient.js';
 
     // Constants
     const US_STATES = [
@@ -228,10 +228,9 @@
     const PRIORITY_STATES = ["FL", "AZ", "MS", "MI", "NV", "TX", "TN", "PA", "MT", "ID", "WA"];
 
     let currentUser = null;
-    let supabase = null;
-    let providers = [];
-    let credentials = [];
-    let routingLogs = [];
+    let routingActivity = [];
+    let unmatchedItems = [];
+    let currentCoverage = null;
 
     // Get state name from code
     function getStateName(code) {
@@ -252,180 +251,53 @@
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
-    // Load providers
-    async function loadProviders() {
-      const { data, error } = await supabase.from('providers').select('*');
-      if (error) {
-        console.error(error);
-        return;
-      }
-      providers = data || [];
+    async function loadCoverage(priorityOnly = false) {
+      currentCoverage = await apiRequest(`/dashboard/coverage?priority_only=${priorityOnly}`);
+      return currentCoverage;
     }
 
-    // Load credentials with provider status and effective_date
-    async function loadCredentials() {
-      const { data, error } = await supabase
-        .from('provider_credentials')
-        .select('state, payer, status, effective_date, provider_id, providers(status)');
-      if (error) {
-        console.error(error);
-        return;
-      }
-      credentials = data || [];
-    }
+    function buildCoverageMatrix() {
+      if (!currentCoverage) return;
 
-    // Load routing logs
-    async function loadRoutingLogs() {
-      const { data, error } = await supabase
-        .from('routing_log')
-        .select('*, providers(first_name, last_name)')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) {
-        console.error(error);
-        return;
-      }
-      routingLogs = data || [];
-    }
+      const statesToShow = currentCoverage.states || [];
+      const payersToShow = currentCoverage.payers || CANONICAL_PAYERS;
+      const matrix = currentCoverage.matrix || {};
+      const blockedCount = currentCoverage.blocked_with_credentials || 0;
 
-    // Calculate stats using provider_credentials
-    function calculateStats() {
-      const activeProviders = providers.filter(p => p.status === 'Active');
+      document.getElementById('statActiveProviders').textContent = currentCoverage.active_providers || 0;
+      document.getElementById('statStatesCovered').textContent = currentCoverage.states_covered || 0;
+      document.getElementById('statPayersCovered').textContent = currentCoverage.payers_covered || 0;
+      document.getElementById('statGaps').textContent = currentCoverage.gaps || 0;
 
-      // Unique states covered: Active provider with Approved credential
-      const coveredStates = new Set();
-      credentials.forEach(c => {
-        if (c.status === 'Approved' && c.providers && c.providers.status === 'Active') {
-          coveredStates.add(c.state);
-        }
-      });
-
-      // Unique payers covered: Active provider with Approved credential
-      const coveredPayers = new Set();
-      credentials.forEach(c => {
-        if (c.status === 'Approved' && c.providers && c.providers.status === 'Active') {
-          coveredPayers.add(c.payer);
-        }
-      });
-
-      document.getElementById('statActiveProviders').textContent = activeProviders.length;
-      document.getElementById('statStatesCovered').textContent = coveredStates.size;
-      document.getElementById('statPayersCovered').textContent = coveredPayers.size;
-
-      return { activeProviders, coveredStates, coveredPayers };
-    }
-
-    // Build coverage matrix using provider_credentials
-    // V2.2: 4-color matrix: Green (routable), Blue (approved-pending), Amber (in progress), Red (gap)
-    // Blocked providers are NOT counted in green cells - they can't be billed through
-    function buildCoverageMatrix(priorityOnly = false) {
-      const today = new Date().toISOString().split('T')[0];
-
-      // Count blocked providers with approved credentials (for footnote)
-      const blockedWithCreds = new Set();
-      credentials.forEach(c => {
-        if (c.status === 'Approved' && c.effective_date && c.effective_date <= today &&
-            c.providers && c.providers.status === 'Blocked') {
-          blockedWithCreds.add(c.provider_id);
-        }
-      });
-      const blockedCount = blockedWithCreds.size;
-
-      // Determine which states to show
-      let statesToShow;
-      if (priorityOnly) {
-        statesToShow = [...PRIORITY_STATES].sort();
-      } else {
-        // Show all 50 states + DC, sorted alphabetically by state code
-        statesToShow = US_STATES.map(s => s.code).sort();
-      }
-
-      // Build coverage data from credentials
-      const coverageData = {};
-      let totalGaps = 0;
-
-      statesToShow.forEach(state => {
-        coverageData[state] = {};
-        CANONICAL_PAYERS.forEach(payer => {
-          // ROUTABLE NOW: Active provider + Approved + effective_date <= today
-          // NOTE: Blocked providers are explicitly excluded - they can't be billed through
-          const routableSet = new Set();
-          credentials.forEach(c => {
-            if (c.state === state && c.payer === payer && c.status === 'Approved' &&
-                c.effective_date && c.effective_date <= today &&
-                c.providers && c.providers.status === 'Active') {
-              routableSet.add(c.provider_id);
-            }
-          });
-          const routableCount = routableSet.size;
-
-          // APPROVED-PENDING: Approved but effective_date > today (Active provider only)
-          const approvedPendingSet = new Set();
-          credentials.forEach(c => {
-            if (c.state === state && c.payer === payer && c.status === 'Approved' &&
-                c.effective_date && c.effective_date > today &&
-                c.providers && c.providers.status === 'Active') {
-              approvedPendingSet.add(c.provider_id);
-            }
-          });
-          const approvedPendingCount = approvedPendingSet.size;
-
-          // IN PROGRESS: status = 'In Progress' (any provider status except Blocked)
-          const inProgressSet = new Set();
-          credentials.forEach(c => {
-            if (c.state === state && c.payer === payer && c.status === 'In Progress' &&
-                c.providers && c.providers.status !== 'Blocked') {
-              inProgressSet.add(c.provider_id);
-            }
-          });
-          const inProgressCount = inProgressSet.size;
-
-          coverageData[state][payer] = {
-            routable: routableCount,
-            approvedPending: approvedPendingCount,
-            inProgress: inProgressCount
-          };
-
-          if (routableCount === 0 && approvedPendingCount === 0 && inProgressCount === 0) {
-            totalGaps++;
-          }
-        });
-      });
-
-      document.getElementById('statGaps').textContent = totalGaps;
-
-      // Render matrix
       const table = document.getElementById('coverageMatrix');
       const thead = table.querySelector('thead tr');
       const tbody = table.querySelector('tbody');
 
-      // Header row
       thead.innerHTML = '<th class="text-left py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50 sticky left-0">State</th>';
-      CANONICAL_PAYERS.forEach(payer => {
+      payersToShow.forEach(payer => {
         thead.innerHTML += `<th class="text-center py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50">${payer}</th>`;
       });
 
-      // Data rows
       tbody.innerHTML = statesToShow.map(state => {
         let row = `<tr><td class="py-2 px-3 text-sm font-medium text-gray-900 bg-white sticky left-0">${state}</td>`;
-        CANONICAL_PAYERS.forEach(payer => {
-          const data = coverageData[state][payer];
-          let cellClass, cellContent;
+        payersToShow.forEach(payer => {
+          const data = matrix?.[state]?.[payer] || {};
+          const routable = data.routable || 0;
+          const approvedPending = data.approved_pending || 0;
+          const inProgress = data.in_progress || 0;
+          let cellClass;
+          let cellContent;
 
-          if (data.routable > 0) {
-            // Green: Routable now
+          if (routable > 0) {
             cellClass = 'coverage-covered';
-            cellContent = data.routable;
-          } else if (data.approvedPending > 0) {
-            // Blue: Approved but not yet effective
+            cellContent = routable;
+          } else if (approvedPending > 0) {
             cellClass = 'coverage-pending';
-            cellContent = data.approvedPending;
-          } else if (data.inProgress > 0) {
-            // Amber: In progress
+            cellContent = approvedPending;
+          } else if (inProgress > 0) {
             cellClass = 'coverage-pipeline';
-            cellContent = `(${data.inProgress})`;
+            cellContent = `(${inProgress})`;
           } else {
-            // Red: Gap
             cellClass = 'coverage-gap';
             cellContent = '0';
           }
@@ -436,7 +308,6 @@
         return row;
       }).join('');
 
-      // Add footnote for blocked providers with credentials
       const footnoteContainer = document.getElementById('blockedFootnote');
       if (blockedCount > 0) {
         if (!footnoteContainer) {
@@ -452,7 +323,6 @@
             </p>
           `;
           matrixContainer.appendChild(footnote);
-          feather.replace({ width: 20, height: 20 });
         } else {
           footnoteContainer.querySelector('p').innerHTML = `
             <strong>${blockedCount} provider${blockedCount !== 1 ? 's have' : ' has'} approved credentials but ${blockedCount !== 1 ? 'are' : 'is'} blocked</strong>
@@ -464,20 +334,26 @@
       }
     }
 
+    async function loadRoutingActivity() {
+      const data = await apiRequest('/dashboard/activity?limit=50');
+      routingActivity = data.items || [];
+    }
+
+    async function loadUnmatchedSearches() {
+      const data = await apiRequest('/dashboard/unmatched?limit=10');
+      unmatchedItems = data.items || [];
+    }
+
     // Render recent activity
     function renderRecentActivity() {
       const tbody = document.getElementById('routingActivity');
 
-      if (routingLogs.length === 0) {
+      if (routingActivity.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No routing activity yet</td></tr>';
         return;
       }
 
-      tbody.innerHTML = routingLogs.map(log => {
-        const providerName = log.providers
-          ? `${log.providers.first_name} ${log.providers.last_name}`
-          : '—';
-
+      tbody.innerHTML = routingActivity.map(log => {
         return `
           <tr class="border-b border-gray-100">
             <td class="py-2 text-gray-500">${formatDate(log.created_at)}</td>
@@ -496,22 +372,7 @@
 
     // Render top unmatched searches
     function renderUnmatchedSearches() {
-      const unmatchedLogs = routingLogs.filter(l => !l.matched);
-
-      // Group by state + payer
-      const grouped = {};
-      unmatchedLogs.forEach(log => {
-        const key = `${log.patient_state}|${log.patient_payer}`;
-        if (!grouped[key]) {
-          grouped[key] = { state: log.patient_state, payer: log.patient_payer, count: 0 };
-        }
-        grouped[key].count++;
-      });
-
-      // Sort by count and take top 10
-      const sorted = Object.values(grouped)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
+      const sorted = [...unmatchedItems].sort((a, b) => b.count - a.count);
 
       const container = document.getElementById('unmatchedSearches');
 
@@ -545,23 +406,27 @@
     async function init() {
       try {
         currentUser = await requireAuth();
-        supabase = await getSupabase();
-
         document.getElementById('userEmail').textContent = currentUser.email;
         wireLogoutButton();
 
         // Load data
-        await Promise.all([loadProviders(), loadCredentials(), loadRoutingLogs()]);
+        const priorityOnly = document.getElementById('priorityStatesToggle').checked;
+        await Promise.all([
+          loadCoverage(priorityOnly),
+          loadRoutingActivity(),
+          loadUnmatchedSearches(),
+        ]);
 
         // Render
-        calculateStats();
-        buildCoverageMatrix(false);
+        buildCoverageMatrix();
         renderRecentActivity();
         renderUnmatchedSearches();
 
         // Priority states toggle
-        document.getElementById('priorityStatesToggle').addEventListener('change', (e) => {
-          buildCoverageMatrix(e.target.checked);
+        document.getElementById('priorityStatesToggle').addEventListener('change', async (e) => {
+          await loadCoverage(e.target.checked);
+          buildCoverageMatrix();
+          feather.replace();
         });
 
         feather.replace();
