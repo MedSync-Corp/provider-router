@@ -355,20 +355,26 @@
 
     function formatDate(dateStr) {
       if (!dateStr) return '—';
+      // Parse date-only strings as local dates to avoid UTC offset shifting
+      const s = String(dateStr);
+      if (s.length === 10 && s[4] === '-') {
+        const [y, m, d] = s.split('-');
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
       return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function todayStr() {
-      return new Date().toISOString().split('T')[0];
+      return new Date().toLocaleDateString('sv');
     }
 
     function firstOfMonth() {
       const d = new Date();
-      return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+      return new Date(d.getFullYear(), d.getMonth(), 1).toLocaleDateString('sv');
     }
 
     function daysFromNow(n) {
-      return new Date(Date.now() + n * 86400000).toISOString().split('T')[0];
+      return new Date(Date.now() + n * 86400000).toLocaleDateString('sv');
     }
 
     function escapeHtml(str) {

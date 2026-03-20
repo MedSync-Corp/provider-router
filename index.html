@@ -243,8 +243,12 @@
     // Format date for display
     function formatCredentialDate(dateStr) {
       if (!dateStr) return '';
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const s = String(dateStr);
+      if (s.length === 10 && s[4] === '-') {
+        const [y, m, d] = s.split('-');
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function escapeHtml(str) {
@@ -445,11 +449,14 @@
 
     // Search providers using provider_credentials table
     // V2.1: Only return providers who can bill TODAY (effective_date <= today)
+    let isSearching = false;
     async function searchProviders() {
+      if (isSearching) return;
+
       const state = document.getElementById('stateSelect').value;
       const payer = document.getElementById('payerSelect').value;
       const activeOnly = document.getElementById('activeOnlyToggle').checked;
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('sv');
 
       if (!state) {
         showToast('Please select a state', 'error');
@@ -459,6 +466,13 @@
         showToast('Please select a payer', 'error');
         return;
       }
+
+      // Disable button during search
+      const searchBtn = document.getElementById('searchBtn');
+      isSearching = true;
+      searchBtn.disabled = true;
+      searchBtn.innerHTML = '<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle"></div> Searching...';
+      try {
 
       document.getElementById('initialState').classList.add('hidden');
       document.getElementById('resultsSection').classList.remove('hidden');
@@ -608,6 +622,12 @@
           ? "Try toggling 'Active providers only' off to see if any In Progress providers cover this combination."
           : "No providers of any status match this criteria.";
         feather.replace({ width: 48, height: 48 });
+      }
+      } finally {
+        isSearching = false;
+        searchBtn.disabled = false;
+        searchBtn.innerHTML = '<i data-feather="search" class="h-5 w-5"></i> Find Provider';
+        feather.replace({ width: 20, height: 20 });
       }
     }
 

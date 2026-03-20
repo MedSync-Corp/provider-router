@@ -170,11 +170,16 @@
 
     function formatDate(d) {
       if (!d) return '—';
+      const s = String(d);
+      if (s.length === 10 && s[4] === '-') {
+        const [y, m, day] = s.split('-');
+        return new Date(y, m - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
       return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function formatDateInput(d) { return d ? d.split('T')[0] : ''; }
-    function todayStr() { return new Date().toISOString().split('T')[0]; }
+    function todayStr() { return new Date().toLocaleDateString('sv'); }
     function escapeHtml(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
 
     function stageBadge(stage) {
