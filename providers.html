@@ -322,8 +322,12 @@
 
     function formatDate(dateStr) {
       if (!dateStr) return '—';
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const s = String(dateStr);
+      if (s.length === 10 && s[4] === '-') {
+        const [y, m, d] = s.split('-');
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function formatDateTime(dateStr) {
@@ -342,7 +346,7 @@
     }
 
     function today() {
-      return new Date().toISOString().split('T')[0];
+      return new Date().toLocaleDateString('sv');
     }
 
     function daysUntil(dateStr) {
@@ -975,13 +979,14 @@
         verified: document.getElementById('lic-verified-new').checked
       };
 
-      const { error } = await supabase.from('provider_licenses').insert(data);
+      const { data: newData, error } = await supabase.from('provider_licenses').insert(data).select('id').single();
       if (error) {
         showToast('Error adding license', 'error');
         console.error(error);
         return;
       }
 
+      await logStatusChange('provider_license', newData.id || data.state, 'created', null, data.state + ' ' + (data.license_type || ''));
       showToast('License added');
       await loadLicensesTab();
     };
@@ -1045,12 +1050,15 @@
     window._deleteLicense = async (licId) => {
       if (!confirm('Delete this license record?')) return;
 
+      const { data: lic } = await supabase.from('provider_licenses').select('state, license_type').eq('id', licId).single();
+
       const { error } = await supabase.from('provider_licenses').delete().eq('id', licId);
       if (error) {
         showToast('Error deleting license', 'error');
         return;
       }
 
+      await logStatusChange('provider_license', licId, 'deleted', lic ? lic.state + ' ' + (lic.license_type || '') : '', null);
       showToast('License deleted');
       await loadLicensesTab();
     };
@@ -1271,6 +1279,8 @@
     window._deleteCredential = async (credId) => {
       if (!confirm('Delete this credential?')) return;
 
+      const { data: cred } = await supabase.from('provider_credentials').select('state, payer').eq('id', credId).single();
+
       // Delete linked credential_linking first
       await supabase.from('credential_linking').delete().eq('credential_id', credId);
 
@@ -1280,6 +1290,7 @@
         return;
       }
 
+      await logStatusChange('provider_credential', credId, 'deleted', cred ? cred.state + ' ' + (cred.payer || '') : '', null);
       showToast('Credential deleted');
       await loadCredentialsTab();
     };
@@ -1346,6 +1357,8 @@
         console.error(error);
         return;
       }
+
+      await logStatusChange('provider_credential', newCred.id || insertData.state, 'created', null, insertData.state + ' ' + (insertData.payer || ''));
 
       // Create credential_linking if specified
       const linkedVal = document.getElementById('cred-linked-new').value;
