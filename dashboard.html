@@ -897,31 +897,39 @@
       html += '</div>';
 
       // ── Routing Status ──
+      // Match criteria to active matrix layer
       const routableProviders = cellCreds.filter(c => {
         if (c.status !== 'Approved' || !c.effective_date || c.effective_date > today) return false;
         if (!c.providers || c.providers.status !== 'Active') return false;
-        const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
-        return linking && linking.linked && group && group.status === 'Approved';
+        if (matrixLayer === 'linked') {
+          const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
+          return linking && linking.linked && group && group.status === 'Approved';
+        }
+        // For 'credentials' and 'group' layers, match the Finder/API criteria:
+        // Approved + effective + Active provider (no linking/group check)
+        return true;
       });
 
+      const layerLabel = matrixLayer === 'linked' ? 'Fully Linked' : matrixLayer === 'group' ? 'Group Enrollment' : 'Individual Credentials';
+
       html += '<div>';
-      html += '<h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Routing Status</h4>';
+      html += `<h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Routing Status <span class="text-xs font-normal">(${layerLabel} layer)</span></h4>`;
 
       if (routableProviders.length > 0) {
         html += `
           <div class="bg-green-50 border border-green-200 rounded-lg p-3">
             <p class="text-sm text-green-800 font-medium">${routableProviders.length} provider${routableProviders.length !== 1 ? 's' : ''} can bill today</p>
             <div class="flex flex-wrap gap-2 mt-2">
-              ${routableProviders.map(c => `<a href="providers.html?id=${c.providers.id}" class="badge badge-active hover:opacity-80">${c.providers.first_name} ${c.providers.last_name}</a>`).join('')}
+              ${routableProviders.map(c => `<a href="providers.html?id=${c.providers.id}" class="badge badge-active hover:opacity-80">${escapeHtml(c.providers.first_name)} ${escapeHtml(c.providers.last_name)}</a>`).join('')}
             </div>
           </div>
         `;
       } else {
-        // Show reason
         let reason = 'No routable providers for this combination.';
         if (!group) reason = 'No group enrollment exists.';
-        else if (isGroupBlocked) reason = `Group enrollment is ${group.status}.`;
+        else if (isGroupBlocked) reason = `Group enrollment is ${escapeHtml(group.status)}.`;
         else if (cellCreds.length === 0) reason = 'No individual credentials exist.';
+        if (matrixLayer === 'linked') reason += ' (Fully Linked layer requires group approval + credential linking.)';
 
         html += `<p class="text-sm text-gray-500">${reason}</p>`;
       }
