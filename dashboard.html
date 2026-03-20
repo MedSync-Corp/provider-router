@@ -46,6 +46,7 @@
           <a href="providers.html" class="text-gray-600 hover:text-gray-900">Providers</a>
           <a href="credentials.html" class="text-gray-600 hover:text-gray-900">Credentials</a>
           <a href="dashboard.html" class="text-brand-blue font-medium border-b-2 border-brand-blue pb-1">Dashboard</a>
+          <a href="action-items.html" class="text-gray-600 hover:text-gray-900">Action Items</a>
           <a href="pipeline.html" class="text-gray-600 hover:text-gray-900">Pipeline</a>
           <a href="settings.html" class="text-gray-600 hover:text-gray-900">Settings</a>
         </div>
@@ -64,7 +65,7 @@
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <!-- ─── Summary Cards ─────────────────────────────────────────── -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
       <!-- Card 1: Onboarding Pipeline -->
       <div class="bg-white rounded-lg shadow p-4">
         <div class="flex items-center gap-2 mb-2">
@@ -129,6 +130,19 @@
           <div class="loading-spinner"></div>
         </div>
       </div>
+
+      <!-- Card 6: Action Items -->
+      <a href="action-items.html" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="p-1.5 bg-red-100 rounded">
+            <i data-feather="alert-circle" class="h-4 w-4 text-red-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-500">Action Items</span>
+        </div>
+        <div id="cardActionItems" class="space-y-1 text-sm">
+          <div class="loading-spinner"></div>
+        </div>
+      </a>
     </div>
 
     <!-- ─── Coverage Gap Matrix ───────────────────────────────────── -->
@@ -315,6 +329,7 @@
     let routingLogs = [];
     let expiringLicenses = [];
     let pipelineData = [];
+    let actionItemsData = [];
 
     // Matrix settings
     let matrixLayer = 'credentials';  // 'credentials' | 'group' | 'linked'
@@ -366,13 +381,14 @@
       const today = todayStr();
       const ninety = daysFromNow(90);
 
-      const [provRes, credRes, groupRes, logRes, licRes, pipeRes] = await Promise.all([
+      const [provRes, credRes, groupRes, logRes, licRes, pipeRes, actionRes] = await Promise.all([
         supabase.from('providers').select('id, first_name, last_name, status, email, personal_npi'),
         supabase.from('provider_credentials').select('*, providers!inner(id, first_name, last_name, status), credential_linking(linked)'),
         supabase.from('group_enrollments').select('*'),
         supabase.from('routing_log').select('*, providers(first_name, last_name)').order('created_at', { ascending: false }).limit(50),
         supabase.from('provider_licenses').select('*, providers!inner(first_name, last_name)').lte('expiration_date', ninety).gte('expiration_date', today).order('expiration_date'),
-        supabase.from('provider_pipeline').select('stage')
+        supabase.from('provider_pipeline').select('stage'),
+        supabase.from('action_items').select('id, status, priority, due_date').in('status', ['Open', 'In Progress'])
       ]);
 
       providers = provRes.data || [];
@@ -392,6 +408,7 @@
       routingLogs = logRes.data || [];
       expiringLicenses = licRes.data || [];
       pipelineData = pipeRes.data || [];
+      actionItemsData = actionRes.data || [];
     }
 
     // ─── Summary Cards ───────────────────────────────────────────────
@@ -487,6 +504,36 @@
         <div class="flex justify-between px-1">
           <span class="text-green-600 font-bold">${stageCounts['Interested'] || 0}</span>
           <span class="text-gray-500">interested</span>
+        </div>
+      `;
+
+      // Card 6: Action Items — count auto-generated critical/high + manual overdue
+      const todayForActions = todayStr();
+      // Count auto-generated: expired licenses + overdue follow-ups
+      let autoCriticalHigh = 0;
+      // Expired licenses (not already in the 90-day window query — need to check all licenses)
+      const allLicExpired = expiringLicenses.filter(l => l.expiration_date && l.expiration_date < todayForActions).length;
+      const licExpiring30 = expiringLicenses.filter(l => l.expiration_date && l.expiration_date >= todayForActions && l.expiration_date <= daysFromNow(30)).length;
+      autoCriticalHigh += allLicExpired + licExpiring30;
+      // Overdue credential follow-ups
+      const overdueCredFu = credentials.filter(c => c.follow_up_date && c.follow_up_date < todayForActions && ['In Progress', 'On Hold'].includes(c.status)).length;
+      autoCriticalHigh += overdueCredFu;
+      // Overdue group enrollment follow-ups
+      const overdueGroupFu = groupEnrollments.filter(g => g.follow_up_date && g.follow_up_date < todayForActions && ['In Progress', 'On Hold', 'Not Started'].includes(g.status)).length;
+      autoCriticalHigh += overdueGroupFu;
+
+      // Manual items overdue
+      const manualOverdue = actionItemsData.filter(a => a.due_date && a.due_date < todayForActions).length;
+      const manualCritical = actionItemsData.filter(a => a.priority === 'Critical').length;
+
+      const totalAttention = autoCriticalHigh + manualCritical + manualOverdue;
+
+      document.getElementById('cardActionItems').innerHTML = `
+        <div class="text-lg font-bold ${totalAttention > 0 ? 'text-red-600' : 'text-green-600'}">${totalAttention > 0 ? `${totalAttention} need attention` : 'All clear'}</div>
+        <div class="flex justify-between px-1 text-xs">
+          ${allLicExpired > 0 ? `<span class="text-red-600 font-medium">${allLicExpired} expired lic.</span>` : ''}
+          ${overdueCredFu + overdueGroupFu > 0 ? `<span class="text-orange-600 font-medium">${overdueCredFu + overdueGroupFu} overdue</span>` : ''}
+          ${totalAttention === 0 ? '<span class="text-gray-400">No urgent items</span>' : ''}
         </div>
       `;
     }
