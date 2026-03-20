@@ -386,7 +386,7 @@
         supabase.from('provider_credentials').select('*, providers!inner(id, first_name, last_name, status), credential_linking(linked)'),
         supabase.from('group_enrollments').select('*'),
         supabase.from('routing_log').select('*, providers(first_name, last_name)').order('created_at', { ascending: false }).limit(50),
-        supabase.from('provider_licenses').select('*, providers!inner(first_name, last_name)').lte('expiration_date', ninety).gte('expiration_date', today).order('expiration_date'),
+        supabase.from('provider_licenses').select('*, providers!inner(first_name, last_name, status)').lte('expiration_date', ninety).order('expiration_date'),
         supabase.from('provider_pipeline').select('stage'),
         supabase.from('action_items').select('id, status, priority, due_date').in('status', ['Open', 'In Progress'])
       ]);
@@ -433,12 +433,19 @@
       `;
 
       // Card 2: License Expirations
-      const expiring30 = expiringLicenses.filter(l => l.expiration_date <= thirty).length;
-      const expiring90 = expiringLicenses.length;
+      const licExpired = expiringLicenses.filter(l => l.expiration_date < today).length;
+      const expiring30 = expiringLicenses.filter(l => l.expiration_date >= today && l.expiration_date <= thirty).length;
+      const expiring90 = expiringLicenses.filter(l => l.expiration_date >= today).length;
 
       document.getElementById('cardLicenses').innerHTML = `
+        ${licExpired > 0 ? `
+        <button onclick="window._showLicenseModal(-1)" class="block w-full text-left hover:bg-gray-50 rounded px-1 -mx-1">
+          <span class="text-red-600 font-bold">${licExpired}</span>
+          <span class="text-gray-600"> expired</span>
+        </button>
+        ` : ''}
         <button onclick="window._showLicenseModal(30)" class="block w-full text-left hover:bg-gray-50 rounded px-1 -mx-1">
-          <span class="text-red-600 font-bold">${expiring30}</span>
+          <span class="${expiring30 > 0 ? 'text-red-600' : 'text-gray-500'} font-bold">${expiring30}</span>
           <span class="text-gray-600"> expiring in 30 days</span>
         </button>
         <button onclick="window._showLicenseModal(90)" class="block w-full text-left hover:bg-gray-50 rounded px-1 -mx-1">
@@ -540,8 +547,15 @@
 
     // ─── License Expiration Modal ────────────────────────────────────
     window._showLicenseModal = (days) => {
-      const cutoff = daysFromNow(days);
-      const filtered = expiringLicenses.filter(l => l.expiration_date <= cutoff);
+      const todayVal = todayStr();
+      let filtered;
+      if (days === -1) {
+        // Show expired only
+        filtered = expiringLicenses.filter(l => l.expiration_date < todayVal);
+      } else {
+        const cutoff = daysFromNow(days);
+        filtered = expiringLicenses.filter(l => l.expiration_date >= todayVal && l.expiration_date <= cutoff);
+      }
 
       const rows = filtered.map(l => {
         const daysLeft = Math.ceil((new Date(l.expiration_date) - new Date()) / 86400000);

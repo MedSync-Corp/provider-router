@@ -262,6 +262,27 @@
         supabase.from('action_items').select('*').in('status', ['Open', 'In Progress']).order('created_at', { ascending: false })
       ]);
 
+      // Check for critical query errors
+      const queryErrors = [];
+      if (providersRes.error) queryErrors.push('providers');
+      if (licensesRes.error) queryErrors.push('licenses');
+      if (credsRes.error) queryErrors.push('credentials');
+      if (groupsRes.error) queryErrors.push('group enrollments');
+      if (tasksRes.error) queryErrors.push('onboarding tasks');
+      if (pipelineRes.error) queryErrors.push('pipeline');
+      if (manualRes.error) queryErrors.push('action items');
+
+      if (queryErrors.length > 0) {
+        const container = document.getElementById('actionItemsList');
+        container.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+            <p class="font-medium">Error loading data from: ${queryErrors.join(', ')}</p>
+            <p class="text-sm mt-1">Some action items may not be shown. Please refresh the page.</p>
+          </div>
+        `;
+        console.error('Query errors:', { providersRes, licensesRes, credsRes, groupsRes, tasksRes, pipelineRes, manualRes });
+      }
+
       const providers = providersRes.data || [];
       const licenses = licensesRes.data || [];
       const creds = credsRes.data || [];
@@ -270,7 +291,6 @@
       const pipeline = pipelineRes.data || [];
       const manualItems = manualRes.data || [];
 
-      // Handle fallback if !inner fails on any query
       const autoItems = [];
 
       // ── Rule 1: License Expirations ──
@@ -358,7 +378,7 @@
         }
       });
       for (const [pid, data] of Object.entries(providerTaskMap)) {
-        if (data.blockingDone && data.blocking.length > 0 && data.provider.status === 'In Progress') {
+        if (data.blockingDone && data.blocking.length > 0 && ['In Progress', 'Blocked'].includes(data.provider.status)) {
           const name = `${data.provider.first_name} ${data.provider.last_name}`;
           autoItems.push({ id: `auto-activate-${pid}`, type: 'auto', category: 'Onboarding', priority: 'Medium',
             title: `${name} — Ready to activate`,
@@ -382,11 +402,23 @@
       groups.forEach(g => {
         if (!g.recredentialing_date) return;
         const days = daysBetween(g.recredentialing_date, today);
-        if (days < 0 || days > 90) return;
-        const pri = days <= 30 ? 'High' : 'Medium';
+        if (days > 90) return;
+
+        let pri, desc;
+        if (days < 0) {
+          pri = 'Critical';
+          desc = `Re-credentialing is ${Math.abs(days)} days overdue.`;
+        } else if (days <= 30) {
+          pri = 'High';
+          desc = `${days} days remaining.`;
+        } else {
+          pri = 'Medium';
+          desc = `${days} days remaining.`;
+        }
+
         autoItems.push({ id: `auto-recred-${g.id}`, type: 'auto', category: 'Re-Credentialing', priority: pri,
-          title: `${g.payer} — ${g.state} group re-credentialing due ${formatDate(g.recredentialing_date)}`,
-          description: `${days} days remaining.`,
+          title: `${g.payer} — ${g.state} group re-credentialing ${days < 0 ? 'OVERDUE' : 'due'} ${formatDate(g.recredentialing_date)}`,
+          description: desc,
           dueDate: g.recredentialing_date, link: 'credentials.html' });
       });
 
