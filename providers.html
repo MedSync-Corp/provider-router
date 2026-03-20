@@ -187,6 +187,126 @@
   </div>
   <div id="detailBackdrop" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30"></div>
 
+  <!-- Edit Provider Modal -->
+  <div id="editProviderModal" class="modal-backdrop hidden">
+    <div class="modal-content w-full max-w-3xl p-6 m-4">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-semibold text-gray-900">Edit Provider Profile</h3>
+        <button id="closeEditModal" class="text-gray-400 hover:text-gray-600">
+          <i data-feather="x" class="h-6 w-6"></i>
+        </button>
+      </div>
+      <form id="editProviderForm" class="space-y-5">
+        <input type="hidden" id="ep-id">
+        <input type="hidden" id="ep-details-id">
+
+        <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Provider Info</h4>
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+            <input type="text" id="ep-first" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <input type="text" id="ep-last" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">NPI</label>
+            <input type="text" id="ep-npi" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" id="ep-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+            <input type="text" id="ep-mobile" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select id="ep-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+              <option value="Active">Active</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Blocked">Blocked</option>
+              <option value="On Hold">On Hold</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide pt-2">Professional Details</h4>
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">CAQH ID</label>
+            <input type="text" id="ep-caqh" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Taxonomy</label>
+            <input type="text" id="ep-taxonomy" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
+            <input type="text" id="ep-specialty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+            <input type="date" id="ep-dob" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">DEA Number</label>
+            <input type="text" id="ep-dea" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Legal Entity</label>
+            <input type="text" id="ep-legal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">TIN/EIN</label>
+            <input type="text" id="ep-tin" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Practice Phone</label>
+            <input type="text" id="ep-pracphone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Practice Fax</label>
+            <input type="text" id="ep-pracfax" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+        </div>
+
+        <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide pt-2">Addresses</h4>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Home Address</label>
+            <input type="text" id="ep-homeaddr" placeholder="Street" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+            <div class="grid grid-cols-3 gap-2">
+              <input type="text" id="ep-homecity" placeholder="City" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+              <input type="text" id="ep-homestate" placeholder="ST" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none" maxlength="2">
+              <input type="text" id="ep-homezip" placeholder="Zip" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Practice Address</label>
+            <div class="grid grid-cols-3 gap-2">
+              <input type="text" id="ep-pracaddr" placeholder="Street" class="col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+              <input type="text" id="ep-pracsuite" placeholder="Suite" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <input type="text" id="ep-praccity" placeholder="City" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+              <input type="text" id="ep-pracstate" placeholder="ST" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none" maxlength="2">
+              <input type="text" id="ep-praczip" placeholder="Zip" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" id="cancelEditProvider" class="px-4 py-2 text-gray-600 hover:text-gray-900">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-brand-blue text-white rounded-lg font-medium hover:bg-blue-700 transition">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Add Provider Modal -->
   <div id="addProviderModal" class="modal-backdrop hidden">
     <div class="modal-content w-full max-w-2xl p-6 m-4">
@@ -381,7 +501,7 @@
     // ─── Data Loading ────────────────────────────────────────────────────
     async function loadProviders() {
       const [providersRes, licensesRes, credsRes, tasksRes] = await Promise.all([
-        supabase.from('providers').select('id, first_name, last_name, email, personal_npi, status').order('last_name'),
+        supabase.from('providers').select('id, first_name, last_name, email, mobile, personal_npi, status').order('last_name'),
         supabase.from('provider_licenses').select('provider_id'),
         supabase.from('provider_credentials').select('provider_id, status, effective_date'),
         supabase.from('onboarding_tasks').select('provider_id, completed')
@@ -773,15 +893,20 @@
         <!-- Identity Info -->
         <div class="space-y-6">
           <div>
-            <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Contact Information</h4>
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Contact Information</h4>
+              <button onclick="window._openEditProvider('${providerId}')" class="px-3 py-1 text-sm text-brand-blue hover:bg-blue-50 rounded flex items-center gap-1">
+                <i data-feather="edit-2" class="h-3 w-3"></i> Edit Profile
+              </button>
+            </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <span class="text-sm text-gray-500">Email</span>
-                <p class="text-gray-900">${provider.email || '—'}</p>
+                <p class="text-gray-900">${escapeHtml(provider.email) || '—'}</p>
               </div>
               <div>
                 <span class="text-sm text-gray-500">Mobile</span>
-                <p class="text-gray-900">${details.practice_phone || '—'}</p>
+                <p class="text-gray-900">${escapeHtml(provider.mobile) || '—'}</p>
               </div>
               <div>
                 <span class="text-sm text-gray-500">NPI</span>
@@ -1733,6 +1858,113 @@
       }
     }
 
+    // ─── Edit Provider ──────────────────────────────────────────────────
+    window._openEditProvider = async (providerId) => {
+      // Fetch full provider + details
+      const [provRes, detRes] = await Promise.all([
+        supabase.from('providers').select('*').eq('id', providerId).single(),
+        supabase.from('provider_details').select('*').eq('provider_id', providerId).maybeSingle()
+      ]);
+
+      const p = provRes.data;
+      const d = detRes.data || {};
+      if (!p) { showToast('Provider not found', 'error'); return; }
+
+      document.getElementById('ep-id').value = p.id;
+      document.getElementById('ep-details-id').value = d.id || '';
+      document.getElementById('ep-first').value = p.first_name || '';
+      document.getElementById('ep-last').value = p.last_name || '';
+      document.getElementById('ep-email').value = p.email || '';
+      document.getElementById('ep-mobile').value = p.mobile || '';
+      document.getElementById('ep-npi').value = p.personal_npi || '';
+      document.getElementById('ep-status').value = p.status || 'In Progress';
+      document.getElementById('ep-caqh').value = d.caqh_id || '';
+      document.getElementById('ep-taxonomy').value = d.taxonomy || '';
+      document.getElementById('ep-specialty').value = d.specialty || '';
+      document.getElementById('ep-dob').value = d.dob ? formatDateInput(d.dob) : '';
+      document.getElementById('ep-dea').value = d.dea_number || '';
+      document.getElementById('ep-legal').value = d.legal_entity || '';
+      document.getElementById('ep-tin').value = d.tin_ein || '';
+      document.getElementById('ep-pracphone').value = d.practice_phone || '';
+      document.getElementById('ep-pracfax').value = d.practice_fax || '';
+      document.getElementById('ep-homeaddr').value = d.home_address || '';
+      document.getElementById('ep-homecity').value = d.home_city || '';
+      document.getElementById('ep-homestate').value = d.home_state || '';
+      document.getElementById('ep-homezip').value = d.home_zip || '';
+      document.getElementById('ep-pracaddr').value = d.practice_address || '';
+      document.getElementById('ep-pracsuite').value = d.practice_suite || '';
+      document.getElementById('ep-praccity').value = d.practice_city || '';
+      document.getElementById('ep-pracstate').value = d.practice_state || '';
+      document.getElementById('ep-praczip').value = d.practice_zip || '';
+
+      document.getElementById('editProviderModal').classList.remove('hidden');
+    };
+
+    function closeEditProviderModal() {
+      document.getElementById('editProviderModal').classList.add('hidden');
+    }
+
+    async function saveEditProvider(e) {
+      e.preventDefault();
+      const providerId = document.getElementById('ep-id').value;
+      const detailsId = document.getElementById('ep-details-id').value;
+
+      // Update providers table
+      const providerData = {
+        first_name: document.getElementById('ep-first').value.trim(),
+        last_name: document.getElementById('ep-last').value.trim(),
+        email: document.getElementById('ep-email').value.trim() || null,
+        mobile: document.getElementById('ep-mobile').value.trim() || null,
+        personal_npi: document.getElementById('ep-npi').value.trim() || null,
+        status: document.getElementById('ep-status').value
+      };
+
+      const { error: provErr } = await supabase.from('providers').update(providerData).eq('id', providerId);
+      if (provErr) { showToast('Error saving provider', 'error'); console.error(provErr); return; }
+
+      // Upsert provider_details
+      const detailsData = {
+        provider_id: providerId,
+        caqh_id: document.getElementById('ep-caqh').value.trim() || null,
+        taxonomy: document.getElementById('ep-taxonomy').value.trim() || null,
+        specialty: document.getElementById('ep-specialty').value.trim() || null,
+        dob: document.getElementById('ep-dob').value || null,
+        dea_number: document.getElementById('ep-dea').value.trim() || null,
+        legal_entity: document.getElementById('ep-legal').value.trim() || null,
+        tin_ein: document.getElementById('ep-tin').value.trim() || null,
+        practice_phone: document.getElementById('ep-pracphone').value.trim() || null,
+        practice_fax: document.getElementById('ep-pracfax').value.trim() || null,
+        home_address: document.getElementById('ep-homeaddr').value.trim() || null,
+        home_city: document.getElementById('ep-homecity').value.trim() || null,
+        home_state: document.getElementById('ep-homestate').value.trim() || null,
+        home_zip: document.getElementById('ep-homezip').value.trim() || null,
+        practice_address: document.getElementById('ep-pracaddr').value.trim() || null,
+        practice_suite: document.getElementById('ep-pracsuite').value.trim() || null,
+        practice_city: document.getElementById('ep-praccity').value.trim() || null,
+        practice_state: document.getElementById('ep-pracstate').value.trim() || null,
+        practice_zip: document.getElementById('ep-praczip').value.trim() || null
+      };
+
+      if (detailsId) {
+        const { error: detErr } = await supabase.from('provider_details').update(detailsData).eq('id', detailsId);
+        if (detErr) { showToast('Error saving details', 'error'); console.error(detErr); return; }
+      } else {
+        const { error: detErr } = await supabase.from('provider_details').insert(detailsData);
+        if (detErr) { showToast('Error saving details', 'error'); console.error(detErr); return; }
+      }
+
+      showToast('Provider profile updated');
+      closeEditProviderModal();
+      await loadProviders();
+
+      // Reload the overview tab if detail panel is open
+      if (detailProviderId === providerId) {
+        detailCache = {};
+        await loadTabData('overview');
+        renderStatusBadge(providers.find(p => p.id === providerId));
+      }
+    }
+
     // ─── Initialization ──────────────────────────────────────────────────
     async function init() {
       try {
@@ -1800,6 +2032,14 @@
         document.getElementById('addProviderForm').addEventListener('submit', saveNewProvider);
         document.getElementById('addProviderModal').addEventListener('click', (e) => {
           if (e.target.id === 'addProviderModal') closeAddProviderModal();
+        });
+
+        // Edit Provider modal
+        document.getElementById('closeEditModal').addEventListener('click', closeEditProviderModal);
+        document.getElementById('cancelEditProvider').addEventListener('click', closeEditProviderModal);
+        document.getElementById('editProviderForm').addEventListener('submit', saveEditProvider);
+        document.getElementById('editProviderModal').addEventListener('click', (e) => {
+          if (e.target.id === 'editProviderModal') closeEditProviderModal();
         });
 
         // Detail panel close
