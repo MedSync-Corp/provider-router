@@ -101,6 +101,10 @@
         <div class="flex-1 min-w-[200px]">
           <input type="text" id="searchInput" placeholder="Search name, NPI, email..." class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
         </div>
+        <button id="addProviderBtn" class="px-4 py-1.5 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-1">
+          <i data-feather="plus" class="h-4 w-4"></i>
+          Add Provider
+        </button>
       </div>
     </div>
 
@@ -181,6 +185,55 @@
     </div>
   </div>
   <div id="detailBackdrop" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30"></div>
+
+  <!-- Add Provider Modal -->
+  <div id="addProviderModal" class="modal-backdrop hidden">
+    <div class="modal-content w-full max-w-2xl p-6 m-4">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-semibold text-gray-900">Add Provider</h3>
+        <button id="closeAddModal" class="text-gray-400 hover:text-gray-600">
+          <i data-feather="x" class="h-6 w-6"></i>
+        </button>
+      </div>
+      <form id="addProviderForm" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+            <input type="text" id="ap-first" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <input type="text" id="ap-last" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" id="ap-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+            <input type="text" id="ap-mobile" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">NPI</label>
+            <input type="text" id="ap-npi" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none font-mono" placeholder="10-digit NPI">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select id="ap-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+              <option value="In Progress">In Progress</option>
+              <option value="Active">Active</option>
+              <option value="Blocked">Blocked</option>
+              <option value="On Hold">On Hold</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button type="button" id="cancelAddProvider" class="px-4 py-2 text-gray-600 hover:text-gray-900">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-brand-blue text-white rounded-lg font-medium hover:bg-blue-700 transition">Save Provider</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script type="module">
     import { requireAuth, wireLogoutButton, getCurrentUser } from './auth.js';
@@ -1607,6 +1660,60 @@
       `;
     }
 
+    // ─── Add Provider ─────────────────────────────────────────────────
+    function openAddProviderModal() {
+      document.getElementById('ap-first').value = '';
+      document.getElementById('ap-last').value = '';
+      document.getElementById('ap-email').value = '';
+      document.getElementById('ap-mobile').value = '';
+      document.getElementById('ap-npi').value = '';
+      document.getElementById('ap-status').value = 'In Progress';
+      document.getElementById('addProviderModal').classList.remove('hidden');
+    }
+
+    function closeAddProviderModal() {
+      document.getElementById('addProviderModal').classList.add('hidden');
+    }
+
+    async function saveNewProvider(e) {
+      e.preventDefault();
+
+      const providerData = {
+        first_name: document.getElementById('ap-first').value.trim(),
+        last_name: document.getElementById('ap-last').value.trim(),
+        email: document.getElementById('ap-email').value.trim() || null,
+        mobile: document.getElementById('ap-mobile').value.trim() || null,
+        personal_npi: document.getElementById('ap-npi').value.trim() || null,
+        status: document.getElementById('ap-status').value
+      };
+
+      if (!providerData.first_name || !providerData.last_name) {
+        showToast('First and last name are required', 'error');
+        return;
+      }
+
+      const { data: newProvider, error } = await supabase
+        .from('providers')
+        .insert(providerData)
+        .select('id')
+        .single();
+
+      if (error) {
+        showToast('Error creating provider', 'error');
+        console.error(error);
+        return;
+      }
+
+      showToast('Provider added successfully');
+      closeAddProviderModal();
+      await loadProviders();
+
+      // Open the new provider's detail panel
+      if (newProvider) {
+        await openProviderDetail(newProvider.id);
+      }
+    }
+
     // ─── Initialization ──────────────────────────────────────────────────
     async function init() {
       try {
@@ -1665,6 +1772,15 @@
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
           btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // Add Provider modal
+        document.getElementById('addProviderBtn').addEventListener('click', openAddProviderModal);
+        document.getElementById('closeAddModal').addEventListener('click', closeAddProviderModal);
+        document.getElementById('cancelAddProvider').addEventListener('click', closeAddProviderModal);
+        document.getElementById('addProviderForm').addEventListener('submit', saveNewProvider);
+        document.getElementById('addProviderModal').addEventListener('click', (e) => {
+          if (e.target.id === 'addProviderModal') closeAddProviderModal();
         });
 
         // Detail panel close
