@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Providers - MedSync NP Router</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['IBM Plex Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#7030a0',
+              blue: '#3656b8',
+              cyan: '#01a7cb',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center gap-2">
+          <img src="./medsync-logo.png" alt="MedSync" class="h-8 w-auto">
+          <span class="text-xl font-bold text-gray-900">NP Router</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <a href="index.html" class="text-gray-600 hover:text-gray-900">Finder</a>
+          <a href="roster.html" class="text-gray-600 hover:text-gray-900">Roster</a>
+          <a href="providers.html" class="text-brand-blue font-medium border-b-2 border-brand-blue pb-1">Providers</a>
+          <a href="dashboard.html" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+        </div>
+        <div class="flex items-center gap-4">
+          <span id="userEmail" class="text-sm text-gray-600"></span>
+          <button id="logoutBtn" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
+            <i data-feather="log-out" class="h-4 w-4"></i>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-500">Total Providers</div>
+        <div class="text-2xl font-bold text-gray-900" id="statTotal">0</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-500">Active</div>
+        <div class="text-2xl font-bold text-green-600" id="statActive">0</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-500">In Progress</div>
+        <div class="text-2xl font-bold text-amber-500" id="statInProgress">0</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-500">Blocked</div>
+        <div class="text-2xl font-bold text-red-600" id="statBlocked">0</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-500">On Hold</div>
+        <div class="text-2xl font-bold text-gray-500" id="statOnHold">0</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-sm text-gray-600 font-medium">Status:</span>
+        <div class="flex flex-wrap gap-1" id="statusFilters">
+          <button data-status="" class="status-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-brand-blue text-white">All</button>
+          <button data-status="Active" class="status-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Active</button>
+          <button data-status="In Progress" class="status-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">In Progress</button>
+          <button data-status="Blocked" class="status-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Blocked</button>
+          <button data-status="On Hold" class="status-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">On Hold</button>
+          <button data-status="Inactive" class="status-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Inactive</button>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+          <input type="text" id="searchInput" placeholder="Search name, NPI, email..." class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+        </div>
+      </div>
+    </div>
+
+    <!-- Provider Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="name">Name <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
+              <th class="sortable" data-sort="status">Status <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
+              <th class="sortable" data-sort="npi">NPI <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
+              <th class="sortable" data-sort="licenses">Licensed States <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
+              <th class="sortable" data-sort="routable">Routable Creds <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
+              <th class="sortable" data-sort="onboarding">Onboarding <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
+            </tr>
+          </thead>
+          <tbody id="providerTableBody">
+            <tr><td colspan="6" class="text-center py-8 text-gray-500"><div class="loading-spinner mx-auto"></div><p class="mt-2">Loading providers...</p></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-600">Rows per page:</span>
+          <select id="rowsPerPage" class="px-2 py-1 border border-gray-300 rounded text-sm">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-4">
+          <span id="paginationInfo" class="text-sm text-gray-600"></span>
+          <div class="flex gap-1">
+            <button id="prevPageBtn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Prev</button>
+            <button id="nextPageBtn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Provider Detail Panel (slide-out) -->
+  <div id="detailPanel" class="hidden fixed top-16 bottom-0 right-0 w-full max-w-4xl lg:w-[55%] lg:min-w-[750px] bg-white shadow-xl z-40 overflow-y-auto">
+    <div class="p-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 id="detailProviderName" class="text-xl font-bold text-gray-900"></h3>
+          <div id="detailProviderStatus" class="mt-1"></div>
+        </div>
+        <button id="closeDetailBtn" class="text-gray-400 hover:text-gray-600">
+          <i data-feather="x" class="h-6 w-6"></i>
+        </button>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="border-b border-gray-200 mb-6">
+        <div class="flex gap-0 -mb-px overflow-x-auto" id="tabBar">
+          <button id="tab-btn-overview" data-tab="overview" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-brand-blue text-brand-blue whitespace-nowrap">Overview</button>
+          <button id="tab-btn-licenses" data-tab="licenses" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Licenses</button>
+          <button id="tab-btn-credentials" data-tab="credentials" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Credentials</button>
+          <button id="tab-btn-onboarding" data-tab="onboarding" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Onboarding</button>
+          <button id="tab-btn-notes" data-tab="notes" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Notes</button>
+          <button id="tab-btn-activity" data-tab="activity" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">Activity</button>
+        </div>
+      </div>
+
+      <!-- Tab Content Areas -->
+      <div id="tab-content-overview"></div>
+      <div id="tab-content-licenses" class="hidden"></div>
+      <div id="tab-content-credentials" class="hidden"></div>
+      <div id="tab-content-onboarding" class="hidden"></div>
+      <div id="tab-content-notes" class="hidden"></div>
+      <div id="tab-content-activity" class="hidden"></div>
+    </div>
+  </div>
+  <div id="detailBackdrop" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30"></div>
+
+  <script type="module">
+    import { requireAuth, wireLogoutButton, getCurrentUser } from './auth.js';
+    import { getSupabase } from './supabaseClient.js';
+
+    // ─── Constants ───────────────────────────────────────────────────────
+    const US_STATES = [
+      { code: "AL", name: "Alabama" }, { code: "AK", name: "Alaska" },
+      { code: "AZ", name: "Arizona" }, { code: "AR", name: "Arkansas" },
+      { code: "CA", name: "California" }, { code: "CO", name: "Colorado" },
+      { code: "CT", name: "Connecticut" }, { code: "DC", name: "District of Columbia" },
+      { code: "DE", name: "Delaware" }, { code: "FL", name: "Florida" },
+      { code: "GA", name: "Georgia" }, { code: "HI", name: "Hawaii" },
+      { code: "ID", name: "Idaho" }, { code: "IL", name: "Illinois" },
+      { code: "IN", name: "Indiana" }, { code: "IA", name: "Iowa" },
+      { code: "KS", name: "Kansas" }, { code: "KY", name: "Kentucky" },
+      { code: "LA", name: "Louisiana" }, { code: "ME", name: "Maine" },
+      { code: "MD", name: "Maryland" }, { code: "MA", name: "Massachusetts" },
+      { code: "MI", name: "Michigan" }, { code: "MN", name: "Minnesota" },
+      { code: "MS", name: "Mississippi" }, { code: "MO", name: "Missouri" },
+      { code: "MT", name: "Montana" }, { code: "NE", name: "Nebraska" },
+      { code: "NV", name: "Nevada" }, { code: "NH", name: "New Hampshire" },
+      { code: "NJ", name: "New Jersey" }, { code: "NM", name: "New Mexico" },
+      { code: "NY", name: "New York" }, { code: "NC", name: "North Carolina" },
+      { code: "ND", name: "North Dakota" }, { code: "OH", name: "Ohio" },
+      { code: "OK", name: "Oklahoma" }, { code: "OR", name: "Oregon" },
+      { code: "PA", name: "Pennsylvania" }, { code: "RI", name: "Rhode Island" },
+      { code: "SC", name: "South Carolina" }, { code: "SD", name: "South Dakota" },
+      { code: "TN", name: "Tennessee" }, { code: "TX", name: "Texas" },
+      { code: "UT", name: "Utah" }, { code: "VT", name: "Vermont" },
+      { code: "VA", name: "Virginia" }, { code: "WA", name: "Washington" },
+      { code: "WV", name: "West Virginia" }, { code: "WI", name: "Wisconsin" },
+      { code: "WY", name: "Wyoming" }
+    ];
+
+    const CANONICAL_PAYERS = ["Medicare", "Medicaid", "Aetna", "UHC", "BCBS", "Cigna", "Humana", "TRICARE"];
+    const OTHER_PAYERS = ["Claritev/Multiplan", "Ambetter", "Devoted Health", "Oscar", "Optum"];
+    const ALL_PAYERS = [...CANONICAL_PAYERS, ...OTHER_PAYERS];
+
+    const CREDENTIAL_STATUSES = ['Approved', 'In Progress', 'On Hold', 'Denied'];
+
+    const LICENSE_TYPES = ['RN', 'NP', 'FNP-C', 'FNP-BC', 'APRN', 'PMHNP-BC', 'AGNP-C', 'ANP-C', 'CNP'];
+
+    const ONBOARDING_CATEGORIES = ['Agreement', 'Insurance', 'Compliance', 'System Setup', 'Training'];
+
+    const TABS = ['overview', 'licenses', 'credentials', 'onboarding', 'notes', 'activity'];
+
+    // ─── State ───────────────────────────────────────────────────────────
+    let currentUser = null;
+    let supabase = null;
+    let providers = [];
+    let filteredProviders = [];
+    let currentPage = 1;
+    let rowsPerPage = 10;
+    let sortColumn = 'name';
+    let sortDirection = 'asc';
+    let activeStatusFilter = '';
+    let detailProviderId = null;
+    let activeTab = 'overview';
+
+    // Aggregated data caches for list view
+    let licenseCounts = {};    // provider_id -> count
+    let routableCounts = {};   // provider_id -> count
+    let onboardingProgress = {}; // provider_id -> { completed, total }
+
+    // Detail view caches (reset when opening a new provider)
+    let detailCache = {};
+
+    // ─── Utilities ───────────────────────────────────────────────────────
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `
+        <i data-feather="${type === 'success' ? 'check-circle' : type === 'error' ? 'alert-circle' : 'info'}" class="h-4 w-4"></i>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      feather.replace({ width: 16, height: 16 });
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '—';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    function formatDateInput(d) {
+      return d ? d.split('T')[0] : '';
+    }
+
+    function today() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function daysUntil(dateStr) {
+      if (!dateStr) return Infinity;
+      const target = new Date(dateStr);
+      const now = new Date();
+      return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+    }
+
+    function statusBadgeClass(status) {
+      switch (status) {
+        case 'Active': return 'badge-active';
+        case 'In Progress': return 'badge-in-progress';
+        case 'Blocked': return 'badge-blocked';
+        case 'On Hold': return 'bg-gray-100 text-gray-600';
+        case 'Inactive': return 'bg-gray-100 text-gray-500';
+        default: return 'bg-gray-100 text-gray-500';
+      }
+    }
+
+    async function logStatusChange(entityType, entityId, field, oldValue, newValue) {
+      await supabase.from('status_log').insert({
+        entity_type: entityType,
+        entity_id: entityId,
+        field_changed: field,
+        old_value: oldValue != null ? String(oldValue) : null,
+        new_value: newValue != null ? String(newValue) : null,
+        changed_by: currentUser.email
+      });
+    }
+
+    // ─── Data Loading ────────────────────────────────────────────────────
+    async function loadProviders() {
+      const [providersRes, licensesRes, credsRes, tasksRes] = await Promise.all([
+        supabase.from('providers').select('id, first_name, last_name, email, personal_npi, status').order('last_name'),
+        supabase.from('provider_licenses').select('provider_id'),
+        supabase.from('provider_credentials').select('provider_id, status, effective_date'),
+        supabase.from('onboarding_tasks').select('provider_id, completed')
+      ]);
+
+      if (providersRes.error) {
+        showToast('Error loading providers', 'error');
+        console.error(providersRes.error);
+        return;
+      }
+
+      providers = providersRes.data || [];
+
+      // Build license counts
+      licenseCounts = {};
+      (licensesRes.data || []).forEach(l => {
+        licenseCounts[l.provider_id] = (licenseCounts[l.provider_id] || 0) + 1;
+      });
+
+      // Build routable credential counts
+      // Routable = credential status Approved AND effective_date <= today AND provider status is Active
+      const todayStr = today();
+      const activeProviderIds = new Set(providers.filter(p => p.status === 'Active').map(p => p.id));
+      routableCounts = {};
+      (credsRes.data || []).forEach(c => {
+        if (c.status === 'Approved' && c.effective_date && c.effective_date <= todayStr && activeProviderIds.has(c.provider_id)) {
+          routableCounts[c.provider_id] = (routableCounts[c.provider_id] || 0) + 1;
+        }
+      });
+
+      // Build onboarding progress
+      onboardingProgress = {};
+      (tasksRes.data || []).forEach(t => {
+        if (!onboardingProgress[t.provider_id]) {
+          onboardingProgress[t.provider_id] = { completed: 0, total: 0 };
+        }
+        onboardingProgress[t.provider_id].total++;
+        if (t.completed) onboardingProgress[t.provider_id].completed++;
+      });
+
+      updateStats();
+      applyFilters();
+    }
+
+    function updateStats() {
+      const counts = { Active: 0, 'In Progress': 0, Blocked: 0, 'On Hold': 0, Inactive: 0 };
+      providers.forEach(p => { if (counts[p.status] !== undefined) counts[p.status]++; });
+
+      document.getElementById('statTotal').textContent = providers.length;
+      document.getElementById('statActive').textContent = counts.Active;
+      document.getElementById('statInProgress').textContent = counts['In Progress'];
+      document.getElementById('statBlocked').textContent = counts.Blocked;
+      document.getElementById('statOnHold').textContent = counts['On Hold'];
+    }
+
+    // ─── Filtering & Sorting ─────────────────────────────────────────────
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+
+      filteredProviders = providers.filter(p => {
+        if (activeStatusFilter && p.status !== activeStatusFilter) return false;
+        if (search) {
+          const searchStr = `${p.first_name} ${p.last_name} ${p.email || ''} ${p.personal_npi || ''}`.toLowerCase();
+          if (!searchStr.includes(search)) return false;
+        }
+        return true;
+      });
+
+      sortProviders();
+      currentPage = 1;
+      renderTable();
+    }
+
+    function sortProviders() {
+      filteredProviders.sort((a, b) => {
+        let aVal, bVal;
+        switch (sortColumn) {
+          case 'name':
+            aVal = `${a.last_name} ${a.first_name}`.toLowerCase();
+            bVal = `${b.last_name} ${b.first_name}`.toLowerCase();
+            break;
+          case 'status':
+            aVal = a.status;
+            bVal = b.status;
+            break;
+          case 'npi':
+            aVal = a.personal_npi || '';
+            bVal = b.personal_npi || '';
+            break;
+          case 'licenses':
+            aVal = licenseCounts[a.id] || 0;
+            bVal = licenseCounts[b.id] || 0;
+            break;
+          case 'routable':
+            aVal = routableCounts[a.id] || 0;
+            bVal = routableCounts[b.id] || 0;
+            break;
+          case 'onboarding':
+            aVal = onboardingProgress[a.id] ? onboardingProgress[a.id].completed / (onboardingProgress[a.id].total || 1) : 0;
+            bVal = onboardingProgress[b.id] ? onboardingProgress[b.id].completed / (onboardingProgress[b.id].total || 1) : 0;
+            break;
+          default:
+            aVal = '';
+            bVal = '';
+        }
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    // ─── Table Rendering ─────────────────────────────────────────────────
+    function renderTable() {
+      const tbody = document.getElementById('providerTableBody');
+      const start = (currentPage - 1) * rowsPerPage;
+      const end = start + rowsPerPage;
+      const pageData = filteredProviders.slice(start, end);
+
+      if (pageData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">No providers found</td></tr>';
+      } else {
+        tbody.innerHTML = pageData.map(p => {
+          const licCount = licenseCounts[p.id] || 0;
+          const routCount = routableCounts[p.id] || 0;
+          const ob = onboardingProgress[p.id];
+          let onboardingHtml;
+          if (ob && ob.total > 0) {
+            const pct = Math.round((ob.completed / ob.total) * 100);
+            onboardingHtml = `
+              <div class="flex items-center gap-2">
+                <div class="w-20 bg-gray-200 rounded-full h-2">
+                  <div class="h-2 rounded-full ${pct === 100 ? 'bg-green-500' : 'bg-brand-blue'}" style="width: ${pct}%"></div>
+                </div>
+                <span class="text-sm text-gray-600">${ob.completed}/${ob.total}</span>
+              </div>
+            `;
+          } else {
+            onboardingHtml = '<span class="text-gray-400 text-sm">—</span>';
+          }
+
+          return `
+            <tr class="hover:bg-gray-50 cursor-pointer" data-id="${p.id}">
+              <td>
+                <div class="font-medium text-gray-900">${p.first_name} ${p.last_name}</div>
+                <div class="text-sm text-gray-500">${p.email || ''}</div>
+              </td>
+              <td><span class="badge ${statusBadgeClass(p.status)}">${p.status}</span></td>
+              <td class="font-mono text-sm">${p.personal_npi || '—'}</td>
+              <td>
+                <span class="badge badge-state">${licCount} state${licCount !== 1 ? 's' : ''}</span>
+              </td>
+              <td>
+                <span class="text-sm font-medium ${routCount > 0 ? 'text-green-600' : 'text-gray-400'}">${routCount}</span>
+              </td>
+              <td>${onboardingHtml}</td>
+            </tr>
+          `;
+        }).join('');
+
+        // Attach click handlers
+        tbody.querySelectorAll('tr[data-id]').forEach(row => {
+          row.addEventListener('click', () => openProviderDetail(row.dataset.id));
+        });
+      }
+
+      // Update pagination
+      const totalPages = Math.ceil(filteredProviders.length / rowsPerPage) || 1;
+      document.getElementById('paginationInfo').textContent =
+        filteredProviders.length > 0
+          ? `${start + 1}-${Math.min(end, filteredProviders.length)} of ${filteredProviders.length}`
+          : '0 of 0';
+      document.getElementById('prevPageBtn').disabled = currentPage === 1;
+      document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+
+      feather.replace({ width: 16, height: 16 });
+    }
+
+    // ─── Provider Detail Panel ───────────────────────────────────────────
+    async function openProviderDetail(providerId) {
+      detailProviderId = providerId;
+      detailCache = {};
+      activeTab = 'overview';
+
+      const provider = providers.find(p => p.id === providerId);
+      if (!provider) return;
+
+      document.getElementById('detailProviderName').textContent = `${provider.first_name} ${provider.last_name}`;
+      renderStatusBadge(provider);
+
+      // Reset tab UI
+      TABS.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const content = document.getElementById(`tab-content-${t}`);
+        if (t === 'overview') {
+          btn.classList.add('border-brand-blue', 'text-brand-blue');
+          btn.classList.remove('border-transparent', 'text-gray-500');
+          content.classList.remove('hidden');
+          content.innerHTML = '<div class="flex justify-center py-8"><div class="loading-spinner"></div></div>';
+        } else {
+          btn.classList.remove('border-brand-blue', 'text-brand-blue');
+          btn.classList.add('border-transparent', 'text-gray-500');
+          content.classList.add('hidden');
+          content.innerHTML = '';
+        }
+      });
+
+      document.getElementById('detailPanel').classList.remove('hidden');
+      document.getElementById('detailBackdrop').classList.remove('hidden');
+
+      feather.replace();
+      await loadTabData('overview');
+    }
+
+    function renderStatusBadge(provider) {
+      const container = document.getElementById('detailProviderStatus');
+      container.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="badge ${statusBadgeClass(provider.status)}">${provider.status}</span>
+          <button id="editStatusBtn" class="p-1 text-gray-400 hover:text-brand-blue" title="Change Status">
+            <i data-feather="edit-2" class="h-4 w-4"></i>
+          </button>
+        </div>
+      `;
+      feather.replace({ width: 16, height: 16 });
+
+      document.getElementById('editStatusBtn').addEventListener('click', () => {
+        container.innerHTML = `
+          <div class="flex items-center gap-2">
+            <select id="statusSelect" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+              ${['Active', 'In Progress', 'Blocked', 'On Hold', 'Inactive'].map(s =>
+                `<option value="${s}" ${s === provider.status ? 'selected' : ''}>${s}</option>`
+              ).join('')}
+            </select>
+            <button id="saveStatusBtn" class="px-3 py-1 bg-brand-blue text-white rounded text-sm hover:bg-blue-700">Save</button>
+            <button id="cancelStatusBtn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Cancel</button>
+          </div>
+        `;
+
+        document.getElementById('saveStatusBtn').addEventListener('click', async () => {
+          const newStatus = document.getElementById('statusSelect').value;
+          if (newStatus === provider.status) {
+            renderStatusBadge(provider);
+            return;
+          }
+
+          const { error } = await supabase.from('providers').update({ status: newStatus }).eq('id', provider.id);
+          if (error) {
+            showToast('Error updating status', 'error');
+            return;
+          }
+
+          await logStatusChange('provider', provider.id, 'status', provider.status, newStatus);
+          showToast('Status updated');
+          provider.status = newStatus;
+
+          // Update list view data
+          const idx = providers.findIndex(p => p.id === provider.id);
+          if (idx >= 0) providers[idx].status = newStatus;
+
+          // Recalculate routable counts since provider status affects routability
+          await loadProviders();
+          renderStatusBadge(provider);
+
+          // Reload overview if active
+          if (activeTab === 'overview') {
+            detailCache.overview = null;
+            await loadTabData('overview');
+          }
+        });
+
+        document.getElementById('cancelStatusBtn').addEventListener('click', () => renderStatusBadge(provider));
+      });
+    }
+
+    function closeDetailPanel() {
+      document.getElementById('detailPanel').classList.add('hidden');
+      document.getElementById('detailBackdrop').classList.add('hidden');
+      detailProviderId = null;
+      detailCache = {};
+    }
+
+    // ─── Tab Switching ───────────────────────────────────────────────────
+    function switchTab(tabName) {
+      activeTab = tabName;
+      TABS.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const content = document.getElementById(`tab-content-${t}`);
+        if (t === tabName) {
+          btn.classList.add('border-brand-blue', 'text-brand-blue');
+          btn.classList.remove('border-transparent', 'text-gray-500');
+          content.classList.remove('hidden');
+        } else {
+          btn.classList.remove('border-brand-blue', 'text-brand-blue');
+          btn.classList.add('border-transparent', 'text-gray-500');
+          content.classList.add('hidden');
+        }
+      });
+      loadTabData(tabName);
+    }
+
+    async function loadTabData(tabName) {
+      const container = document.getElementById(`tab-content-${tabName}`);
+      if (!detailProviderId) return;
+
+      // Show spinner if not cached
+      if (!detailCache[tabName]) {
+        container.innerHTML = '<div class="flex justify-center py-8"><div class="loading-spinner"></div></div>';
+      }
+
+      switch (tabName) {
+        case 'overview': await loadOverviewTab(); break;
+        case 'licenses': await loadLicensesTab(); break;
+        case 'credentials': await loadCredentialsTab(); break;
+        case 'onboarding': await loadOnboardingTab(); break;
+        case 'notes': await loadNotesTab(); break;
+        case 'activity': await loadActivityTab(); break;
+      }
+    }
+
+    // ─── Overview Tab ────────────────────────────────────────────────────
+    async function loadOverviewTab() {
+      const container = document.getElementById('tab-content-overview');
+      const providerId = detailProviderId;
+      const provider = providers.find(p => p.id === providerId);
+      if (!provider) return;
+
+      const [detailsRes, licensesRes, credsRes, tasksRes] = await Promise.all([
+        supabase.from('provider_details').select('*').eq('provider_id', providerId).maybeSingle(),
+        supabase.from('provider_licenses').select('id, state, expiration_date').eq('provider_id', providerId),
+        supabase.from('provider_credentials').select('id, status, effective_date').eq('provider_id', providerId),
+        supabase.from('onboarding_tasks').select('id, completed, blocks_activation').eq('provider_id', providerId)
+      ]);
+
+      const details = detailsRes.data || {};
+      const licenses = licensesRes.data || [];
+      const creds = credsRes.data || [];
+      const tasks = tasksRes.data || [];
+
+      // Compute summary values
+      const todayStr = today();
+      const routableCount = provider.status === 'Active'
+        ? creds.filter(c => c.status === 'Approved' && c.effective_date && c.effective_date <= todayStr).length
+        : 0;
+
+      const completedTasks = tasks.filter(t => t.completed).length;
+      const totalTasks = tasks.length;
+
+      const nextExpiring = licenses
+        .filter(l => l.expiration_date && l.expiration_date >= todayStr)
+        .sort((a, b) => a.expiration_date.localeCompare(b.expiration_date))[0];
+
+      detailCache.overview = true;
+
+      container.innerHTML = `
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="flex items-center gap-2 mb-1">
+              <i data-feather="clipboard" class="h-4 w-4 text-brand-blue"></i>
+              <span class="text-sm font-medium text-gray-600">Onboarding</span>
+            </div>
+            <div class="text-xl font-bold text-gray-900">${totalTasks > 0 ? `${completedTasks} / ${totalTasks}` : 'No tasks'}</div>
+            ${totalTasks > 0 ? `
+              <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                <div class="h-1.5 rounded-full ${completedTasks === totalTasks ? 'bg-green-500' : 'bg-brand-blue'}" style="width: ${Math.round((completedTasks / totalTasks) * 100)}%"></div>
+              </div>
+            ` : ''}
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="flex items-center gap-2 mb-1">
+              <i data-feather="check-circle" class="h-4 w-4 text-green-600"></i>
+              <span class="text-sm font-medium text-gray-600">Routable Credentials</span>
+            </div>
+            <div class="text-xl font-bold ${routableCount > 0 ? 'text-green-600' : 'text-gray-400'}">${routableCount}</div>
+            ${provider.status !== 'Active' && creds.some(c => c.status === 'Approved' && c.effective_date && c.effective_date <= todayStr) ? `
+              <p class="text-xs text-amber-600 mt-1">Provider not Active — approved creds not routable</p>
+            ` : ''}
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="flex items-center gap-2 mb-1">
+              <i data-feather="map-pin" class="h-4 w-4 text-brand-purple"></i>
+              <span class="text-sm font-medium text-gray-600">State Licenses</span>
+            </div>
+            <div class="text-xl font-bold text-gray-900">${licenses.length}</div>
+            ${nextExpiring ? `<p class="text-xs text-gray-500 mt-1">Next exp: ${formatDate(nextExpiring.expiration_date)}</p>` : ''}
+          </div>
+        </div>
+
+        <!-- Identity Info -->
+        <div class="space-y-6">
+          <div>
+            <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Contact Information</h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <span class="text-sm text-gray-500">Email</span>
+                <p class="text-gray-900">${provider.email || '—'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">Mobile</span>
+                <p class="text-gray-900">${details.practice_phone || '—'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">NPI</span>
+                <p class="font-mono text-gray-900">${provider.personal_npi || '—'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">CAQH ID</span>
+                <p class="font-mono text-gray-900">${details.caqh_id || '—'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Professional Details</h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <span class="text-sm text-gray-500">Taxonomy</span>
+                <p class="font-mono text-gray-900">${details.taxonomy || '—'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">Specialty</span>
+                <p class="text-gray-900">${details.specialty || '—'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">Date of Birth</span>
+                <p class="text-gray-900">${details.dob ? formatDate(details.dob) : '—'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">DEA Number</span>
+                <p class="font-mono text-gray-900">${details.dea_number || '—'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">Legal Entity</span>
+                <p class="text-gray-900">${details.legal_entity || '—'}</p>
+              </div>
+              <div>
+                <span class="text-sm text-gray-500">TIN/EIN</span>
+                <p class="font-mono text-gray-900">${details.tin_ein || '—'}</p>
+              </div>
+            </div>
+          </div>
+
+          ${details.home_address || details.practice_address ? `
+          <div>
+            <h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Addresses</h4>
+            <div class="grid grid-cols-2 gap-4">
+              ${details.home_address ? `
+              <div>
+                <span class="text-sm text-gray-500">Home Address</span>
+                <p class="text-gray-900">${details.home_address}${details.home_city ? `, ${details.home_city}` : ''}${details.home_state ? `, ${details.home_state}` : ''} ${details.home_zip || ''}</p>
+              </div>
+              ` : ''}
+              ${details.practice_address ? `
+              <div>
+                <span class="text-sm text-gray-500">Practice Address</span>
+                <p class="text-gray-900">${details.practice_address}${details.practice_suite ? ` ${details.practice_suite}` : ''}${details.practice_city ? `, ${details.practice_city}` : ''}${details.practice_state ? `, ${details.practice_state}` : ''} ${details.practice_zip || ''}</p>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          ` : ''}
+        </div>
+      `;
+
+      feather.replace({ width: 16, height: 16 });
+    }
+
+    // ─── Licenses Tab ────────────────────────────────────────────────────
+    async function loadLicensesTab() {
+      const container = document.getElementById('tab-content-licenses');
+      const providerId = detailProviderId;
+
+      const { data: licenses, error } = await supabase
+        .from('provider_licenses')
+        .select('*')
+        .eq('provider_id', providerId)
+        .order('state');
+
+      if (error) {
+        container.innerHTML = '<p class="text-red-500 text-sm">Error loading licenses.</p>';
+        return;
+      }
+
+      detailCache.licenses = licenses;
+      const todayStr = today();
+
+      const rows = (licenses || []).map(l => {
+        const days = daysUntil(l.expiration_date);
+        let rowClass = '';
+        let dateClass = '';
+        if (l.expiration_date && l.expiration_date < todayStr) {
+          rowClass = 'bg-red-50';
+          dateClass = 'text-red-600 line-through';
+        } else if (days <= 30) {
+          rowClass = 'bg-red-50';
+          dateClass = 'text-red-600 font-medium';
+        } else if (days <= 90) {
+          rowClass = 'bg-amber-50';
+          dateClass = 'text-amber-700 font-medium';
+        }
+
+        return `
+          <tr class="border-b border-gray-100 ${rowClass}" id="license-row-${l.id}">
+            <td class="py-2 pr-2 font-medium">${l.state}</td>
+            <td class="py-2 pr-2 text-sm">${l.license_type || '—'}</td>
+            <td class="py-2 pr-2 font-mono text-sm">${l.license_number || '—'}</td>
+            <td class="py-2 pr-2 text-sm text-gray-500">${formatDate(l.issue_date)}</td>
+            <td class="py-2 pr-2 text-sm ${dateClass || 'text-gray-500'}">${formatDate(l.expiration_date)}</td>
+            <td class="py-2 pr-2 text-sm">${l.compact_multistate ? '<span class="badge badge-state">Compact</span>' : '—'}</td>
+            <td class="py-2 pr-2 text-sm">${l.verified ? '<span class="text-green-600">✓</span>' : '<span class="text-gray-400">—</span>'}</td>
+            <td class="py-2">
+              <div class="flex items-center gap-1">
+                <button onclick="window._editLicense('${l.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit">
+                  <i data-feather="edit-2" class="h-4 w-4"></i>
+                </button>
+                <button onclick="window._deleteLicense('${l.id}')" class="p-1 text-gray-400 hover:text-red-600" title="Delete">
+                  <i data-feather="trash-2" class="h-4 w-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-500 border-b">
+              <th class="pb-2 pr-2 font-medium">State</th>
+              <th class="pb-2 pr-2 font-medium">Type</th>
+              <th class="pb-2 pr-2 font-medium">License #</th>
+              <th class="pb-2 pr-2 font-medium">Issue Date</th>
+              <th class="pb-2 pr-2 font-medium">Expiration</th>
+              <th class="pb-2 pr-2 font-medium">Compact</th>
+              <th class="pb-2 pr-2 font-medium">Verified</th>
+              <th class="pb-2 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="licensesTableBody">
+            ${rows || '<tr><td colspan="8" class="py-4 text-gray-500 text-center">No licenses on file</td></tr>'}
+          </tbody>
+        </table>
+        <button onclick="window._addLicense()" class="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium flex items-center gap-2">
+          <i data-feather="plus" class="h-4 w-4"></i>
+          Add License
+        </button>
+      `;
+
+      feather.replace({ width: 16, height: 16 });
+    }
+
+    // License CRUD
+    window._addLicense = () => {
+      const tbody = document.getElementById('licensesTableBody');
+      if (!tbody || document.getElementById('license-row-new')) return;
+
+      const row = document.createElement('tr');
+      row.id = 'license-row-new';
+      row.className = 'border-b border-gray-100 bg-green-50';
+      row.innerHTML = `
+        <td class="py-2 pr-2">
+          <select id="lic-state-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${US_STATES.map(s => `<option value="${s.code}">${s.code}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="lic-type-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${LICENSE_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2"><input type="text" id="lic-number-new" placeholder="License #" class="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"></td>
+        <td class="py-2 pr-2"><input type="date" id="lic-issue-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 pr-2"><input type="date" id="lic-expiry-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 pr-2"><input type="checkbox" id="lic-compact-new" class="w-4 h-4"></td>
+        <td class="py-2 pr-2"><input type="checkbox" id="lic-verified-new" class="w-4 h-4"></td>
+        <td class="py-2">
+          <div class="flex items-center gap-1">
+            <button onclick="window._saveNewLicense()" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">Add</button>
+            <button onclick="document.getElementById('license-row-new').remove()" class="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">Cancel</button>
+          </div>
+        </td>
+      `;
+      tbody.insertBefore(row, tbody.firstChild);
+    };
+
+    window._saveNewLicense = async () => {
+      const data = {
+        provider_id: detailProviderId,
+        state: document.getElementById('lic-state-new').value,
+        license_type: document.getElementById('lic-type-new').value,
+        license_number: document.getElementById('lic-number-new').value || null,
+        issue_date: document.getElementById('lic-issue-new').value || null,
+        expiration_date: document.getElementById('lic-expiry-new').value || null,
+        compact_multistate: document.getElementById('lic-compact-new').checked,
+        verified: document.getElementById('lic-verified-new').checked
+      };
+
+      const { error } = await supabase.from('provider_licenses').insert(data);
+      if (error) {
+        showToast('Error adding license', 'error');
+        console.error(error);
+        return;
+      }
+
+      showToast('License added');
+      await loadLicensesTab();
+    };
+
+    window._editLicense = async (licId) => {
+      const { data: lic, error } = await supabase
+        .from('provider_licenses').select('*').eq('id', licId).single();
+      if (error || !lic) { showToast('Error loading license', 'error'); return; }
+
+      const row = document.getElementById(`license-row-${licId}`);
+      if (!row) return;
+
+      row.className = 'border-b border-gray-100 bg-blue-50';
+      row.innerHTML = `
+        <td class="py-2 pr-2">
+          <select id="lic-state-${licId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${US_STATES.map(s => `<option value="${s.code}" ${s.code === lic.state ? 'selected' : ''}>${s.code}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="lic-type-${licId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${LICENSE_TYPES.map(t => `<option value="${t}" ${t === lic.license_type ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2"><input type="text" id="lic-number-${licId}" value="${lic.license_number || ''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"></td>
+        <td class="py-2 pr-2"><input type="date" id="lic-issue-${licId}" value="${formatDateInput(lic.issue_date)}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 pr-2"><input type="date" id="lic-expiry-${licId}" value="${formatDateInput(lic.expiration_date)}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 pr-2"><input type="checkbox" id="lic-compact-${licId}" ${lic.compact_multistate ? 'checked' : ''} class="w-4 h-4"></td>
+        <td class="py-2 pr-2"><input type="checkbox" id="lic-verified-${licId}" ${lic.verified ? 'checked' : ''} class="w-4 h-4"></td>
+        <td class="py-2">
+          <div class="flex items-center gap-1">
+            <button onclick="window._saveLicense('${licId}')" class="px-2 py-1 bg-brand-blue text-white rounded text-xs hover:bg-blue-700">Save</button>
+            <button onclick="window._reloadLicenses()" class="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">Cancel</button>
+          </div>
+        </td>
+      `;
+    };
+
+    window._saveLicense = async (licId) => {
+      const data = {
+        state: document.getElementById(`lic-state-${licId}`).value,
+        license_type: document.getElementById(`lic-type-${licId}`).value,
+        license_number: document.getElementById(`lic-number-${licId}`).value || null,
+        issue_date: document.getElementById(`lic-issue-${licId}`).value || null,
+        expiration_date: document.getElementById(`lic-expiry-${licId}`).value || null,
+        compact_multistate: document.getElementById(`lic-compact-${licId}`).checked,
+        verified: document.getElementById(`lic-verified-${licId}`).checked
+      };
+
+      const { error } = await supabase.from('provider_licenses').update(data).eq('id', licId);
+      if (error) {
+        showToast('Error saving license', 'error');
+        console.error(error);
+        return;
+      }
+
+      showToast('License updated');
+      await loadLicensesTab();
+    };
+
+    window._deleteLicense = async (licId) => {
+      if (!confirm('Delete this license record?')) return;
+
+      const { error } = await supabase.from('provider_licenses').delete().eq('id', licId);
+      if (error) {
+        showToast('Error deleting license', 'error');
+        return;
+      }
+
+      showToast('License deleted');
+      await loadLicensesTab();
+    };
+
+    window._reloadLicenses = () => loadLicensesTab();
+
+    // ─── Credentials Tab ─────────────────────────────────────────────────
+    async function loadCredentialsTab() {
+      const container = document.getElementById('tab-content-credentials');
+      const providerId = detailProviderId;
+
+      const { data: creds, error } = await supabase
+        .from('provider_credentials')
+        .select('*, credential_linking(*)')
+        .eq('provider_id', providerId)
+        .order('state')
+        .order('payer');
+
+      if (error) {
+        container.innerHTML = '<p class="text-red-500 text-sm">Error loading credentials.</p>';
+        console.error(error);
+        return;
+      }
+
+      detailCache.credentials = creds;
+      const todayStr = today();
+
+      const getStatusBadge = (cred) => {
+        if (cred.status === 'Approved') {
+          if (cred.effective_date && cred.effective_date <= todayStr) {
+            return '<span class="badge badge-active">Routable</span>';
+          } else if (cred.effective_date && cred.effective_date > todayStr) {
+            return '<span class="badge bg-blue-100 text-blue-800">Approved - Pending</span>';
+          }
+          return '<span class="badge badge-active">Approved</span>';
+        }
+        switch (cred.status) {
+          case 'In Progress': return '<span class="badge badge-in-progress">In Progress</span>';
+          case 'On Hold': return '<span class="badge bg-gray-100 text-gray-600">On Hold</span>';
+          case 'Denied': return '<span class="badge badge-blocked">Denied</span>';
+          default: return '<span class="badge bg-gray-100 text-gray-500">Unknown</span>';
+        }
+      };
+
+      const getLinkingBadge = (cred) => {
+        const linking = Array.isArray(cred.credential_linking) ? cred.credential_linking[0] : cred.credential_linking;
+        if (!linking) return '<span class="text-gray-400 text-xs">—</span>';
+        return linking.linked
+          ? '<span class="badge badge-active">Linked</span>'
+          : '<span class="badge badge-in-progress">Not Linked</span>';
+      };
+
+      const rows = (creds || []).map(c => `
+        <tr class="border-b border-gray-100" id="cred-row-${c.id}">
+          <td class="py-2 pr-2 font-medium">${c.state}</td>
+          <td class="py-2 pr-2">${c.payer}</td>
+          <td class="py-2 pr-2 whitespace-nowrap">${getStatusBadge(c)}</td>
+          <td class="py-2 pr-2 text-gray-500 text-xs">${formatDate(c.effective_date)}</td>
+          <td class="py-2 pr-2">${getLinkingBadge(c)}</td>
+          <td class="py-2 pr-2 font-mono text-xs text-gray-500">${c.reference_number || '—'}</td>
+          <td class="py-2 pr-2 text-xs text-gray-500">${c.follow_up_date ? formatDate(c.follow_up_date) : '—'}</td>
+          <td class="py-2 pr-2 text-xs text-gray-500 truncate max-w-[120px]" title="${c.notes || ''}">${c.notes || '—'}</td>
+          <td class="py-2">
+            <div class="flex items-center gap-1">
+              <button onclick="window._editCredential('${c.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit">
+                <i data-feather="edit-2" class="h-4 w-4"></i>
+              </button>
+              <button onclick="window._deleteCredential('${c.id}')" class="p-1 text-gray-400 hover:text-red-600" title="Delete">
+                <i data-feather="trash-2" class="h-4 w-4"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      container.innerHTML = `
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-500 border-b">
+              <th class="pb-2 pr-2 font-medium">State</th>
+              <th class="pb-2 pr-2 font-medium">Payer</th>
+              <th class="pb-2 pr-2 font-medium">Status</th>
+              <th class="pb-2 pr-2 font-medium">Effective</th>
+              <th class="pb-2 pr-2 font-medium">Linked</th>
+              <th class="pb-2 pr-2 font-medium">Ref #</th>
+              <th class="pb-2 pr-2 font-medium">Follow-Up</th>
+              <th class="pb-2 pr-2 font-medium">Notes</th>
+              <th class="pb-2 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="credentialsTableBody">
+            ${rows || '<tr><td colspan="9" class="py-4 text-gray-500 text-center">No credentials on file</td></tr>'}
+          </tbody>
+        </table>
+        <button onclick="window._addCredential()" class="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium flex items-center gap-2">
+          <i data-feather="plus" class="h-4 w-4"></i>
+          Add Credential
+        </button>
+      `;
+
+      feather.replace({ width: 16, height: 16 });
+    }
+
+    // Credential CRUD
+    window._editCredential = async (credId) => {
+      const { data: cred, error } = await supabase
+        .from('provider_credentials').select('*, credential_linking(*)').eq('id', credId).single();
+      if (error || !cred) { showToast('Error loading credential', 'error'); return; }
+
+      const linking = Array.isArray(cred.credential_linking) ? cred.credential_linking[0] : cred.credential_linking;
+      const row = document.getElementById(`cred-row-${credId}`);
+      if (!row) return;
+
+      row.className = 'border-b border-gray-100 bg-blue-50';
+      row.innerHTML = `
+        <td class="py-2 pr-2">
+          <select id="cred-state-${credId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${US_STATES.map(s => `<option value="${s.code}" ${s.code === cred.state ? 'selected' : ''}>${s.code}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="cred-payer-${credId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${ALL_PAYERS.map(p => `<option value="${p}" ${p === cred.payer ? 'selected' : ''}>${p}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="cred-status-${credId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${CREDENTIAL_STATUSES.map(s => `<option value="${s}" ${s === cred.status ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <input type="date" id="cred-effective-${credId}" value="${formatDateInput(cred.effective_date)}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2 pr-2">
+          <select id="cred-linked-${credId}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            <option value="" ${!linking ? 'selected' : ''}>—</option>
+            <option value="true" ${linking && linking.linked ? 'selected' : ''}>Yes</option>
+            <option value="false" ${linking && !linking.linked ? 'selected' : ''}>No</option>
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <input type="text" id="cred-ref-${credId}" value="${cred.reference_number || ''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono">
+        </td>
+        <td class="py-2 pr-2">
+          <input type="date" id="cred-followup-${credId}" value="${formatDateInput(cred.follow_up_date)}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2 pr-2">
+          <input type="text" id="cred-notes-${credId}" value="${cred.notes || ''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+        </td>
+        <td class="py-2">
+          <div class="flex items-center gap-1">
+            <button onclick="window._saveCredential('${credId}')" class="px-2 py-1 bg-brand-blue text-white rounded text-xs hover:bg-blue-700">Save</button>
+            <button onclick="window._reloadCredentials()" class="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">Cancel</button>
+          </div>
+        </td>
+      `;
+    };
+
+    window._saveCredential = async (credId) => {
+      // Get old values for logging
+      const { data: oldCred } = await supabase
+        .from('provider_credentials').select('status, credential_linking(linked)').eq('id', credId).single();
+
+      const newStatus = document.getElementById(`cred-status-${credId}`).value;
+      const updateData = {
+        state: document.getElementById(`cred-state-${credId}`).value,
+        payer: document.getElementById(`cred-payer-${credId}`).value,
+        status: newStatus,
+        effective_date: document.getElementById(`cred-effective-${credId}`).value || null,
+        reference_number: document.getElementById(`cred-ref-${credId}`).value || null,
+        follow_up_date: document.getElementById(`cred-followup-${credId}`).value || null,
+        notes: document.getElementById(`cred-notes-${credId}`).value || null
+      };
+
+      const { error } = await supabase.from('provider_credentials').update(updateData).eq('id', credId);
+      if (error) {
+        showToast('Error saving credential', 'error');
+        console.error(error);
+        return;
+      }
+
+      // Log status change if it changed
+      if (oldCred && oldCred.status !== newStatus) {
+        await logStatusChange('credential', credId, 'status', oldCred.status, newStatus);
+      }
+
+      // Handle linking update
+      const linkedVal = document.getElementById(`cred-linked-${credId}`).value;
+      if (linkedVal !== '') {
+        const linkedBool = linkedVal === 'true';
+        const oldLinking = Array.isArray(oldCred?.credential_linking) ? oldCred.credential_linking[0] : oldCred?.credential_linking;
+
+        // Upsert credential_linking
+        const { data: existingLink } = await supabase
+          .from('credential_linking').select('id, linked').eq('credential_id', credId).maybeSingle();
+
+        if (existingLink) {
+          if (existingLink.linked !== linkedBool) {
+            await supabase.from('credential_linking').update({ linked: linkedBool, linked_date: linkedBool ? today() : null }).eq('id', existingLink.id);
+            await logStatusChange('credential_linking', existingLink.id, 'linked', String(existingLink.linked), String(linkedBool));
+          }
+        } else {
+          const { data: newLink } = await supabase.from('credential_linking').insert({
+            credential_id: credId,
+            linked: linkedBool,
+            linked_date: linkedBool ? today() : null
+          }).select('id').single();
+          if (newLink) {
+            await logStatusChange('credential_linking', newLink.id, 'linked', null, String(linkedBool));
+          }
+        }
+      }
+
+      showToast('Credential updated');
+      await loadCredentialsTab();
+    };
+
+    window._deleteCredential = async (credId) => {
+      if (!confirm('Delete this credential?')) return;
+
+      // Delete linked credential_linking first
+      await supabase.from('credential_linking').delete().eq('credential_id', credId);
+
+      const { error } = await supabase.from('provider_credentials').delete().eq('id', credId);
+      if (error) {
+        showToast('Error deleting credential', 'error');
+        return;
+      }
+
+      showToast('Credential deleted');
+      await loadCredentialsTab();
+    };
+
+    window._addCredential = () => {
+      const tbody = document.getElementById('credentialsTableBody');
+      if (!tbody || document.getElementById('cred-row-new')) return;
+
+      const row = document.createElement('tr');
+      row.id = 'cred-row-new';
+      row.className = 'border-b border-gray-100 bg-green-50';
+      row.innerHTML = `
+        <td class="py-2 pr-2">
+          <select id="cred-state-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${US_STATES.map(s => `<option value="${s.code}">${s.code}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="cred-payer-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${ALL_PAYERS.map(p => `<option value="${p}">${p}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2">
+          <select id="cred-status-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            ${CREDENTIAL_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('')}
+          </select>
+        </td>
+        <td class="py-2 pr-2"><input type="date" id="cred-effective-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 pr-2">
+          <select id="cred-linked-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+            <option value="">—</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </td>
+        <td class="py-2 pr-2"><input type="text" id="cred-ref-new" placeholder="Ref #" class="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"></td>
+        <td class="py-2 pr-2"><input type="date" id="cred-followup-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 pr-2"><input type="text" id="cred-notes-new" placeholder="Notes" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2">
+          <div class="flex items-center gap-1">
+            <button onclick="window._saveNewCredential()" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">Add</button>
+            <button onclick="document.getElementById('cred-row-new').remove()" class="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">Cancel</button>
+          </div>
+        </td>
+      `;
+      tbody.insertBefore(row, tbody.firstChild);
+    };
+
+    window._saveNewCredential = async () => {
+      const insertData = {
+        provider_id: detailProviderId,
+        state: document.getElementById('cred-state-new').value,
+        payer: document.getElementById('cred-payer-new').value,
+        status: document.getElementById('cred-status-new').value,
+        effective_date: document.getElementById('cred-effective-new').value || null,
+        reference_number: document.getElementById('cred-ref-new').value || null,
+        follow_up_date: document.getElementById('cred-followup-new').value || null,
+        notes: document.getElementById('cred-notes-new').value || null
+      };
+
+      const { data: newCred, error } = await supabase.from('provider_credentials').insert(insertData).select('id').single();
+      if (error) {
+        showToast('Error adding credential', 'error');
+        console.error(error);
+        return;
+      }
+
+      // Create credential_linking if specified
+      const linkedVal = document.getElementById('cred-linked-new').value;
+      if (linkedVal !== '' && newCred) {
+        const linkedBool = linkedVal === 'true';
+        await supabase.from('credential_linking').insert({
+          credential_id: newCred.id,
+          linked: linkedBool,
+          linked_date: linkedBool ? today() : null
+        });
+      }
+
+      showToast('Credential added');
+      await loadCredentialsTab();
+    };
+
+    window._reloadCredentials = () => loadCredentialsTab();
+
+    // ─── Onboarding Tab ──────────────────────────────────────────────────
+    async function loadOnboardingTab() {
+      const container = document.getElementById('tab-content-onboarding');
+      const providerId = detailProviderId;
+
+      const { data: tasks, error } = await supabase
+        .from('onboarding_tasks')
+        .select('*')
+        .eq('provider_id', providerId)
+        .order('category')
+        .order('task_name');
+
+      if (error) {
+        container.innerHTML = '<p class="text-red-500 text-sm">Error loading onboarding tasks.</p>';
+        return;
+      }
+
+      detailCache.onboarding = tasks;
+
+      if (!tasks || tasks.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <p>No onboarding tasks configured for this provider.</p>
+            <button onclick="window._initOnboarding()" class="mt-4 px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+              Initialize Onboarding Checklist
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      const completed = tasks.filter(t => t.completed).length;
+      const total = tasks.length;
+      const pct = Math.round((completed / total) * 100);
+      const blockingTasks = tasks.filter(t => t.blocks_activation && !t.completed);
+      const allBlockingDone = tasks.filter(t => t.blocks_activation).every(t => t.completed);
+
+      // Group by category
+      const grouped = {};
+      ONBOARDING_CATEGORIES.forEach(cat => { grouped[cat] = []; });
+      tasks.forEach(t => {
+        if (grouped[t.category]) grouped[t.category].push(t);
+        else grouped[t.category] = [t];
+      });
+
+      let html = `
+        <!-- Progress Bar -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700">${completed} of ${total} tasks complete</span>
+            <span class="text-sm font-bold ${pct === 100 ? 'text-green-600' : 'text-brand-blue'}">${pct}%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="h-3 rounded-full transition-all ${pct === 100 ? 'bg-green-500' : 'bg-brand-blue'}" style="width: ${pct}%"></div>
+          </div>
+        </div>
+      `;
+
+      // Banner: all blocking tasks done
+      if (allBlockingDone && tasks.filter(t => t.blocks_activation).length > 0) {
+        html += `
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+            <i data-feather="check-circle" class="h-5 w-5 text-green-600 flex-shrink-0"></i>
+            <div>
+              <p class="text-green-800 font-medium">All required tasks complete</p>
+              <p class="text-green-700 text-sm">Provider can be activated.</p>
+            </div>
+          </div>
+        `;
+      } else if (blockingTasks.length > 0) {
+        html += `
+          <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+            <i data-feather="alert-triangle" class="h-5 w-5 text-amber-600 flex-shrink-0"></i>
+            <p class="text-amber-800 text-sm">${blockingTasks.length} required task${blockingTasks.length !== 1 ? 's' : ''} still blocking activation</p>
+          </div>
+        `;
+      }
+
+      // Category groups
+      for (const [category, catTasks] of Object.entries(grouped)) {
+        if (catTasks.length === 0) continue;
+
+        const catCompleted = catTasks.filter(t => t.completed).length;
+        html += `
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <h5 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">${category}</h5>
+              <span class="text-xs text-gray-500">${catCompleted}/${catTasks.length}</span>
+            </div>
+            <div class="space-y-1">
+        `;
+
+        for (const task of catTasks) {
+          html += `
+            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer group" id="task-row-${task.id}">
+              <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="window._toggleTask('${task.id}', this.checked)"
+                class="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue flex-shrink-0">
+              <span class="text-sm ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}">${task.task_name}</span>
+              ${task.blocks_activation ? '<span class="badge badge-blocked text-[10px] ml-auto">Required</span>' : ''}
+            </label>
+          `;
+        }
+
+        html += `</div></div>`;
+      }
+
+      container.innerHTML = html;
+      feather.replace({ width: 16, height: 16 });
+    }
+
+    window._toggleTask = async (taskId, completed) => {
+      // Get old value
+      const { data: old } = await supabase
+        .from('onboarding_tasks').select('completed').eq('id', taskId).single();
+
+      const updateData = {
+        completed,
+        completed_date: completed ? today() : null,
+        completed_by: completed ? currentUser.email : null
+      };
+
+      const { error } = await supabase.from('onboarding_tasks').update(updateData).eq('id', taskId);
+      if (error) {
+        showToast('Error updating task', 'error');
+        return;
+      }
+
+      await logStatusChange('onboarding_task', taskId, 'completed', old ? String(old.completed) : 'false', String(completed));
+      showToast(completed ? 'Task completed' : 'Task unchecked');
+      await loadOnboardingTab();
+    };
+
+    // Initialize default onboarding tasks for a provider
+    window._initOnboarding = async () => {
+      const DEFAULT_TASKS = [
+        { category: 'Agreement', task_name: 'BAA (Business Associate Agreement)', blocks_activation: true },
+        { category: 'Agreement', task_name: 'Independent Contractor Agreement', blocks_activation: true },
+        { category: 'Agreement', task_name: 'NDA (Non-Disclosure Agreement)', blocks_activation: true },
+        { category: 'Agreement', task_name: 'Reassignment of Payment Agreement', blocks_activation: true },
+        { category: 'Agreement', task_name: 'Provider Enrollment Form', blocks_activation: true },
+        { category: 'Insurance', task_name: 'COI (Certificate of Insurance / Malpractice)', blocks_activation: true },
+        { category: 'Compliance', task_name: 'Collaborative Agreement', blocks_activation: false },
+        { category: 'Compliance', task_name: 'License Verified', blocks_activation: true },
+        { category: 'Compliance', task_name: 'DEA Registration', blocks_activation: false },
+        { category: 'Compliance', task_name: 'CAQH Application Complete', blocks_activation: true },
+        { category: 'System Setup', task_name: 'NPPES Confirmed', blocks_activation: true },
+        { category: 'System Setup', task_name: 'NPPES Updated', blocks_activation: false },
+        { category: 'System Setup', task_name: 'PECOS Surrogacy', blocks_activation: false },
+        { category: 'System Setup', task_name: 'CAQH Updated', blocks_activation: false },
+        { category: 'System Setup', task_name: 'Tebra Setup', blocks_activation: true },
+        { category: 'System Setup', task_name: 'Trizetto Setup', blocks_activation: false },
+        { category: 'System Setup', task_name: 'Availity Setup', blocks_activation: false },
+        { category: 'Training', task_name: 'Completed NP Training', blocks_activation: false }
+      ];
+
+      const rows = DEFAULT_TASKS.map(t => ({
+        ...t,
+        provider_id: detailProviderId,
+        completed: false
+      }));
+
+      const { error } = await supabase.from('onboarding_tasks').insert(rows);
+      if (error) {
+        showToast('Error initializing tasks', 'error');
+        console.error(error);
+        return;
+      }
+
+      showToast('Onboarding checklist created');
+      await loadOnboardingTab();
+    };
+
+    // ─── Notes Tab ───────────────────────────────────────────────────────
+    async function loadNotesTab() {
+      const container = document.getElementById('tab-content-notes');
+      const providerId = detailProviderId;
+
+      const { data: notes, error } = await supabase
+        .from('contact_notes')
+        .select('*')
+        .eq('provider_id', providerId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        container.innerHTML = '<p class="text-red-500 text-sm">Error loading notes.</p>';
+        return;
+      }
+
+      const notesHtml = (notes || []).map(n => `
+        <div class="note-item">
+          <p class="text-gray-900">${n.note}</p>
+          <p class="text-xs text-gray-500 mt-1">${n.created_by || 'Unknown'} &middot; ${formatDateTime(n.created_at)}</p>
+        </div>
+      `).join('');
+
+      container.innerHTML = `
+        <div class="mb-4">
+          <textarea id="newNoteText" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none resize-none" placeholder="Add a note..."></textarea>
+          <button id="addNoteBtn" class="mt-2 px-4 py-1.5 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">Add Note</button>
+        </div>
+        <div id="notesTimeline">
+          ${notesHtml || '<p class="text-gray-500 text-sm">No notes yet.</p>'}
+        </div>
+      `;
+
+      document.getElementById('addNoteBtn').addEventListener('click', async () => {
+        const noteText = document.getElementById('newNoteText').value.trim();
+        if (!noteText) { showToast('Please enter a note', 'error'); return; }
+
+        const { error } = await supabase.from('contact_notes').insert({
+          provider_id: providerId,
+          note: noteText,
+          created_by: currentUser.email
+        });
+
+        if (error) {
+          showToast('Error saving note', 'error');
+          return;
+        }
+
+        showToast('Note added');
+        await loadNotesTab();
+      });
+    }
+
+    // ─── Activity Tab ────────────────────────────────────────────────────
+    async function loadActivityTab() {
+      const container = document.getElementById('tab-content-activity');
+      const providerId = detailProviderId;
+
+      // Gather all entity IDs for this provider
+      const [credsRes, tasksRes, linkingRes] = await Promise.all([
+        supabase.from('provider_credentials').select('id').eq('provider_id', providerId),
+        supabase.from('onboarding_tasks').select('id').eq('provider_id', providerId),
+        supabase.from('provider_credentials').select('credential_linking(id)').eq('provider_id', providerId)
+      ]);
+
+      const credIds = (credsRes.data || []).map(c => c.id);
+      const taskIds = (tasksRes.data || []).map(t => t.id);
+      const linkIds = (linkingRes.data || []).flatMap(c => {
+        const links = Array.isArray(c.credential_linking) ? c.credential_linking : (c.credential_linking ? [c.credential_linking] : []);
+        return links.map(l => l.id);
+      });
+      const allIds = [providerId, ...credIds, ...taskIds, ...linkIds].filter(Boolean);
+
+      if (allIds.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No activity yet.</p>';
+        return;
+      }
+
+      const { data: logs, error } = await supabase
+        .from('status_log')
+        .select('*')
+        .in('entity_id', allIds)
+        .order('changed_at', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        container.innerHTML = '<p class="text-red-500 text-sm">Error loading activity.</p>';
+        return;
+      }
+
+      if (!logs || logs.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No activity logged yet.</p>';
+        return;
+      }
+
+      const entityLabel = (type) => {
+        switch (type) {
+          case 'provider': return 'Provider';
+          case 'credential': return 'Credential';
+          case 'onboarding_task': return 'Task';
+          case 'credential_linking': return 'Linking';
+          default: return type;
+        }
+      };
+
+      const timeline = logs.map(log => `
+        <div class="flex gap-3 py-3 border-b border-gray-100 last:border-0">
+          <div class="flex-shrink-0 mt-1">
+            <div class="w-2 h-2 rounded-full bg-brand-blue"></div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-gray-900">
+              <span class="font-medium">${log.changed_by || 'System'}</span>
+              changed <span class="font-medium">${entityLabel(log.entity_type)}</span>
+              <span class="text-gray-500">${log.field_changed}</span>
+              ${log.old_value ? `from <span class="font-mono text-xs bg-red-50 text-red-700 px-1 rounded">${log.old_value}</span>` : ''}
+              to <span class="font-mono text-xs bg-green-50 text-green-700 px-1 rounded">${log.new_value}</span>
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">${formatDateTime(log.changed_at)}</p>
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = `
+        <div class="divide-y divide-gray-100">
+          ${timeline}
+        </div>
+      `;
+    }
+
+    // ─── Initialization ──────────────────────────────────────────────────
+    async function init() {
+      try {
+        currentUser = await requireAuth();
+        supabase = await getSupabase();
+
+        document.getElementById('userEmail').textContent = currentUser.email;
+        wireLogoutButton();
+
+        // Status filter buttons
+        document.querySelectorAll('.status-filter-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            activeStatusFilter = btn.dataset.status;
+            document.querySelectorAll('.status-filter-btn').forEach(b => {
+              b.classList.remove('bg-brand-blue', 'text-white');
+              b.classList.add('bg-gray-100', 'text-gray-600');
+            });
+            btn.classList.remove('bg-gray-100', 'text-gray-600');
+            btn.classList.add('bg-brand-blue', 'text-white');
+            applyFilters();
+          });
+        });
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+        // Pagination
+        document.getElementById('rowsPerPage').addEventListener('change', (e) => {
+          rowsPerPage = parseInt(e.target.value);
+          currentPage = 1;
+          renderTable();
+        });
+        document.getElementById('prevPageBtn').addEventListener('click', () => {
+          if (currentPage > 1) { currentPage--; renderTable(); }
+        });
+        document.getElementById('nextPageBtn').addEventListener('click', () => {
+          const totalPages = Math.ceil(filteredProviders.length / rowsPerPage);
+          if (currentPage < totalPages) { currentPage++; renderTable(); }
+        });
+
+        // Sorting
+        document.querySelectorAll('.sortable').forEach(th => {
+          th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (sortColumn === col) {
+              sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+              sortColumn = col;
+              sortDirection = 'asc';
+            }
+            sortProviders();
+            renderTable();
+          });
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // Detail panel close
+        document.getElementById('closeDetailBtn').addEventListener('click', closeDetailPanel);
+        document.getElementById('detailBackdrop').addEventListener('click', closeDetailPanel);
+
+        // Load data
+        await loadProviders();
+
+        feather.replace();
+      } catch (e) {
+        console.error('Init error:', e);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
