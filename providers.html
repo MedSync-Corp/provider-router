@@ -332,6 +332,11 @@
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
     }
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
     function formatDateInput(d) {
       return d ? d.split('T')[0] : '';
     }
@@ -516,8 +521,8 @@
           return `
             <tr class="hover:bg-gray-50 cursor-pointer" data-id="${p.id}">
               <td>
-                <div class="font-medium text-gray-900">${p.first_name} ${p.last_name}</div>
-                <div class="text-sm text-gray-500">${p.email || ''}</div>
+                <div class="font-medium text-gray-900">${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</div>
+                <div class="text-sm text-gray-500">${escapeHtml(p.email) || ''}</div>
               </td>
               <td><span class="badge ${statusBadgeClass(p.status)}">${p.status}</span></td>
               <td class="font-mono text-sm">${p.personal_npi || '—'}</td>
@@ -1107,7 +1112,7 @@
           <td class="py-2 pr-2">${getLinkingBadge(c)}</td>
           <td class="py-2 pr-2 font-mono text-xs text-gray-500">${c.reference_number || '—'}</td>
           <td class="py-2 pr-2 text-xs text-gray-500">${c.follow_up_date ? formatDate(c.follow_up_date) : '—'}</td>
-          <td class="py-2 pr-2 text-xs text-gray-500 truncate max-w-[120px]" title="${c.notes || ''}">${c.notes || '—'}</td>
+          <td class="py-2 pr-2 text-xs text-gray-500 truncate max-w-[120px]" title="${escapeHtml(c.notes)}">${escapeHtml(c.notes) || '—'}</td>
           <td class="py-2">
             <div class="flex items-center gap-1">
               <button onclick="window._editCredential('${c.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit">
@@ -1549,8 +1554,8 @@
 
       const notesHtml = (notes || []).map(n => `
         <div class="note-item">
-          <p class="text-gray-900">${n.note}</p>
-          <p class="text-xs text-gray-500 mt-1">${n.created_by || 'Unknown'} &middot; ${formatDateTime(n.created_at)}</p>
+          <p class="text-gray-900">${escapeHtml(n.note)}</p>
+          <p class="text-xs text-gray-500 mt-1">${escapeHtml(n.created_by) || 'Unknown'} &middot; ${formatDateTime(n.created_at)}</p>
         </div>
       `).join('');
 
@@ -1643,11 +1648,11 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm text-gray-900">
-              <span class="font-medium">${log.changed_by || 'System'}</span>
+              <span class="font-medium">${escapeHtml(log.changed_by) || 'System'}</span>
               changed <span class="font-medium">${entityLabel(log.entity_type)}</span>
-              <span class="text-gray-500">${log.field_changed}</span>
-              ${log.old_value ? `from <span class="font-mono text-xs bg-red-50 text-red-700 px-1 rounded">${log.old_value}</span>` : ''}
-              to <span class="font-mono text-xs bg-green-50 text-green-700 px-1 rounded">${log.new_value}</span>
+              <span class="text-gray-500">${escapeHtml(log.field_changed)}</span>
+              ${log.old_value ? `from <span class="font-mono text-xs bg-red-50 text-red-700 px-1 rounded">${escapeHtml(log.old_value)}</span>` : ''}
+              to <span class="font-mono text-xs bg-green-50 text-green-700 px-1 rounded">${escapeHtml(log.new_value)}</span>
             </p>
             <p class="text-xs text-gray-400 mt-0.5">${formatDateTime(log.changed_at)}</p>
           </div>

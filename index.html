@@ -247,8 +247,21 @@
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // Store passwords in memory, never in DOM
+    const _passwordStore = new Map();
+
     // Render provider card
     function renderProviderCard(provider, selectedState, selectedPayer) {
+      // Store password in memory, never in DOM
+      if (provider.ehr_login_password) {
+        _passwordStore.set(provider.id, provider.ehr_login_password);
+      }
+
       const isActive = provider.status === 'Active';
       const isPending = provider.isPending; // Approved but effective_date > today
       const statusClass = provider.status === 'Active' ? 'badge-active' :
@@ -295,11 +308,11 @@
               <div class="mt-2 space-y-1">
                 ${relevantCreds.map(c => `
                   <div class="text-sm ${subTextColor}">
-                    <span class="font-medium">${c.payer}</span>
+                    <span class="font-medium">${escapeHtml(c.payer)}</span>
                     ${c.effective_date ? ` — Effective ${formatCredentialDate(c.effective_date)}` : ''}
-                    ${c.reference_number ? ` — Ref# ${c.reference_number}` : ''}
+                    ${c.reference_number ? ` — Ref# ${escapeHtml(c.reference_number)}` : ''}
                     ${c.approval_date ? ` — Approved ${formatCredentialDate(c.approval_date)}` : ''}
-                    ${c.notes ? ` — <span class="italic">${c.notes}</span>` : ''}
+                    ${c.notes ? ` — <span class="italic">${escapeHtml(c.notes)}</span>` : ''}
                   </div>
                 `).join('')}
               </div>
@@ -323,8 +336,8 @@
         <div class="${cardClass}" data-provider-id="${provider.id}">
           <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
             <div>
-              <h4 class="text-xl font-bold text-gray-900">${provider.first_name} ${provider.last_name}</h4>
-              <span class="badge ${statusClass}">${provider.status}</span>${pendingBadge}
+              <h4 class="text-xl font-bold text-gray-900">${escapeHtml(provider.first_name)} ${escapeHtml(provider.last_name)}</h4>
+              <span class="badge ${statusClass}">${escapeHtml(provider.status)}</span>${pendingBadge}
             </div>
             <div class="flex flex-wrap gap-2">
               <button class="copy-btn px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1" onclick="window.copyNPI('${provider.personal_npi}', this)">
@@ -340,7 +353,7 @@
                 <i data-feather="mail" class="h-4 w-4"></i> Email Provider
               </a>
               ` : ''}
-              <button class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1" onclick="window.openNoteModal('${provider.id}', '${provider.first_name} ${provider.last_name}')">
+              <button class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1" onclick="window.openNoteModal('${provider.id}', '${escapeHtml(provider.first_name)} ${escapeHtml(provider.last_name)}')">
                 <i data-feather="message-square" class="h-4 w-4"></i> Add Note
               </button>
             </div>
@@ -349,33 +362,33 @@
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <span class="text-sm text-gray-500">Personal NPI</span>
-              <p class="font-mono text-gray-900">${provider.personal_npi || '—'}</p>
+              <p class="font-mono text-gray-900">${escapeHtml(provider.personal_npi) || '—'}</p>
             </div>
             <div>
               <span class="text-sm text-gray-500">Email</span>
-              <p class="text-gray-900">${provider.email || '—'}</p>
+              <p class="text-gray-900">${escapeHtml(provider.email) || '—'}</p>
             </div>
             <div>
               <span class="text-sm text-gray-500">Mobile</span>
-              <p class="text-gray-900">${provider.mobile || '—'}</p>
+              <p class="text-gray-900">${escapeHtml(provider.mobile) || '—'}</p>
             </div>
             <div>
               <span class="text-sm text-gray-500">Availability</span>
-              <p class="text-gray-900">${provider.availability || '—'}</p>
+              <p class="text-gray-900">${escapeHtml(provider.availability) || '—'}</p>
             </div>
             <div>
               <span class="text-sm text-gray-500">EHR Login Email</span>
-              <p class="text-gray-900">${provider.ehr_login_email || '—'}</p>
+              <p class="text-gray-900">${escapeHtml(provider.ehr_login_email) || '—'}</p>
             </div>
             <div>
               <span class="text-sm text-gray-500">EHR Login Password</span>
               <div class="flex items-center gap-2">
-                <span class="password-field password-hidden text-gray-900" data-password="${provider.ehr_login_password || ''}" id="pwd-${provider.id}">
+                <span class="password-field password-hidden text-gray-900" id="pwd-${provider.id}">
                   ${provider.ehr_login_password ? '••••••••••' : '—'}
                 </span>
                 ${provider.ehr_login_password ? `
-                <button class="text-sm text-brand-blue hover:underline" onclick="window.togglePassword('${provider.id}', '${provider.ehr_login_password}')">Show</button>
-                <button class="text-sm text-brand-blue hover:underline" onclick="window.copyPassword('${provider.ehr_login_password}')">Copy</button>
+                <button class="text-sm text-brand-blue hover:underline" onclick="window.togglePassword('${provider.id}')">Show</button>
+                <button class="text-sm text-brand-blue hover:underline" onclick="window.copyPassword('${provider.id}')">Copy</button>
                 ` : ''}
               </div>
             </div>
@@ -400,11 +413,17 @@
     // Global functions for onclick handlers
     window.copyNPI = (npi, btn) => copyToClipboard(npi, btn);
     window.copyLogin = (email, btn) => copyToClipboard(email, btn);
-    window.copyPassword = (pwd) => {
-      navigator.clipboard.writeText(pwd);
-      showToast('Password copied to clipboard');
+    window.copyPassword = async (providerId) => {
+      const pwd = _passwordStore.get(providerId);
+      if (!pwd) { showToast('No password on file', 'error'); return; }
+      try {
+        await navigator.clipboard.writeText(pwd);
+        showToast('Password copied to clipboard');
+      } catch { showToast('Failed to copy', 'error'); }
     };
-    window.togglePassword = (id, pwd) => {
+    window.togglePassword = (id) => {
+      const pwd = _passwordStore.get(id);
+      if (!pwd) return;
       const span = document.getElementById(`pwd-${id}`);
       const btn = span.nextElementSibling;
       if (span.classList.contains('password-hidden')) {
