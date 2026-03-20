@@ -1672,6 +1672,13 @@
         // Load data
         await loadProviders();
 
+        // Deep-link: open provider detail if ?id= is in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const directId = urlParams.get('id');
+        if (directId) {
+          await openProviderDetail(directId);
+        }
+
         feather.replace();
       } catch (e) {
         console.error('Init error:', e);
