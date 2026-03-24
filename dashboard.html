@@ -152,7 +152,8 @@
         <div class="flex flex-wrap items-center gap-3">
           <!-- Layer Selector -->
           <div class="flex rounded-lg border border-gray-300 overflow-hidden" id="layerSelector">
-            <button data-layer="credentials" class="layer-btn px-3 py-1.5 text-sm font-medium bg-brand-blue text-white">Individual Credentials</button>
+            <button data-layer="billable" class="layer-btn px-3 py-1.5 text-sm font-medium bg-brand-blue text-white">Billable</button>
+            <button data-layer="credentials" class="layer-btn px-3 py-1.5 text-sm font-medium bg-white text-gray-600 border-l border-gray-300 hover:bg-gray-50">Individual Credentials</button>
             <button data-layer="group" class="layer-btn px-3 py-1.5 text-sm font-medium bg-white text-gray-600 border-l border-gray-300 hover:bg-gray-50">Group Enrollment</button>
             <button data-layer="linked" class="layer-btn px-3 py-1.5 text-sm font-medium bg-white text-gray-600 border-l border-gray-300 hover:bg-gray-50">Fully Linked</button>
           </div>
@@ -332,7 +333,7 @@
     let actionItemsData = [];
 
     // Matrix settings
-    let matrixLayer = 'credentials';  // 'credentials' | 'group' | 'linked'
+    let matrixLayer = 'billable';  // 'billable' | 'credentials' | 'group' | 'linked'
     let payerFilter = '';
     let priorityOnly = false;
 
@@ -389,7 +390,7 @@
 
       const [provRes, credRes, groupRes, logRes, licRes, pipeRes, actionRes] = await Promise.all([
         supabase.from('providers').select('id, first_name, last_name, status, email, personal_npi'),
-        supabase.from('provider_credentials').select('*, providers!inner(id, first_name, last_name, status), credential_linking(linked)'),
+        supabase.from('provider_credentials').select('*, providers!inner(id, first_name, last_name, status, licensed_states), credential_linking(linked)'),
         supabase.from('group_enrollments').select('*'),
         supabase.from('routing_log').select('*, providers(first_name, last_name)').order('created_at', { ascending: false }).limit(50),
         supabase.from('provider_licenses').select('*, providers!inner(first_name, last_name, status)').lte('expiration_date', ninety).order('expiration_date'),
@@ -644,7 +645,52 @@
           const group = groupMap[key];
           let cellClass, cellContent;
 
-          if (matrixLayer === 'group') {
+          if (matrixLayer === 'billable') {
+            // ── Billable Layer: ALL conditions for billing ──
+            // 1. Group NPI in network (group_enrollments.status = Approved)
+            // 2. Provider credentialed under personal NPI (credential Approved + effective <= today)
+            // 3. Provider Active
+            // 4. Licensed in state (providers.licensed_states includes state)
+            // 5. Linked to Vitality group (credential_linking.linked = true)
+            const groupApproved = group && group.status === 'Approved';
+            let billableCount = 0;
+            let almostCount = 0; // has some pieces but not all
+
+            credentials.forEach(c => {
+              if (c.state !== state || c.payer !== payer) return;
+              const credReady = c.status === 'Approved' && c.effective_date && c.effective_date <= today;
+              const provActive = c.providers && c.providers.status === 'Active';
+              const licensed = c.providers && Array.isArray(c.providers.licensed_states) && c.providers.licensed_states.includes(state);
+              const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
+              const isLinked = linking && linking.linked;
+
+              if (groupApproved && credReady && provActive && licensed && isLinked) {
+                billableCount++;
+              } else if (credReady && provActive && licensed) {
+                almostCount++; // credential ready but missing group/linking
+              } else if (groupApproved && c.status === 'Approved' && provActive && licensed) {
+                almostCount++; // group ok but effective date missing or future
+              } else if (c.status === 'In Progress' && c.providers && c.providers.status !== 'Blocked') {
+                almostCount++;
+              }
+            });
+
+            if (billableCount > 0) {
+              cellClass = 'coverage-covered';
+              cellContent = billableCount;
+            } else if (almostCount > 0) {
+              cellClass = 'coverage-pipeline';
+              cellContent = `(${almostCount})`;
+            } else if (!group) {
+              cellClass = 'bg-gray-100 text-gray-400';
+              cellContent = '—';
+            } else {
+              cellClass = 'coverage-gap';
+              cellContent = '0';
+              totalGaps++;
+            }
+
+          } else if (matrixLayer === 'group') {
             // ── Group Enrollment Layer ──
             if (!group) {
               cellClass = 'bg-gray-100 text-gray-400';
@@ -745,9 +791,9 @@
 
       document.getElementById('statGapsLabel').textContent = totalGaps > 0 ? `${totalGaps} gap${totalGaps !== 1 ? 's' : ''} identified` : '';
 
-      // Blocked providers footnote (only in credentials layer)
+      // Blocked providers footnote (credentials and billable layers)
       const footnote = document.getElementById('blockedFootnote');
-      if (matrixLayer === 'credentials') {
+      if (matrixLayer === 'credentials' || matrixLayer === 'billable') {
         const blockedWithCreds = new Set();
         credentials.forEach(c => {
           if (c.status === 'Approved' && c.effective_date && c.effective_date <= today && c.providers && c.providers.status === 'Blocked') {
@@ -785,7 +831,7 @@
       // Fetch detail data
       const [groupRes, credsRes] = await Promise.all([
         supabase.from('group_enrollments').select('*').eq('payer', payer).eq('state', state).maybeSingle(),
-        supabase.from('provider_credentials').select('*, providers!inner(id, first_name, last_name, status), credential_linking(linked, linked_date)').eq('payer', payer).eq('state', state)
+        supabase.from('provider_credentials').select('*, providers!inner(id, first_name, last_name, status, licensed_states), credential_linking(linked, linked_date)').eq('payer', payer).eq('state', state)
       ]);
 
       const group = groupRes.data;
@@ -921,6 +967,12 @@
       const routableProviders = cellCreds.filter(c => {
         if (c.status !== 'Approved' || !c.effective_date || c.effective_date > today) return false;
         if (!c.providers || c.providers.status !== 'Active') return false;
+        if (matrixLayer === 'billable') {
+          const licensed = Array.isArray(c.providers.licensed_states) && c.providers.licensed_states.includes(state);
+          const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
+          const isLinked = linking && linking.linked;
+          return group && group.status === 'Approved' && licensed && isLinked;
+        }
         if (matrixLayer === 'linked') {
           const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
           return linking && linking.linked && group && group.status === 'Approved';
@@ -930,7 +982,8 @@
         return true;
       });
 
-      const layerLabel = matrixLayer === 'linked' ? 'Fully Linked' : matrixLayer === 'group' ? 'Group Enrollment' : 'Individual Credentials';
+      const layerLabels = { billable: 'Billable', linked: 'Fully Linked', group: 'Group Enrollment', credentials: 'Individual Credentials' };
+      const layerLabel = layerLabels[matrixLayer] || 'Individual Credentials';
 
       html += '<div>';
       html += `<h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Routing Status <span class="text-xs font-normal">(${layerLabel} layer)</span></h4>`;
@@ -949,6 +1002,7 @@
         if (!group) reason = 'No group enrollment exists.';
         else if (isGroupBlocked) reason = `Group enrollment is ${escapeHtml(group.status)}.`;
         else if (cellCreds.length === 0) reason = 'No individual credentials exist.';
+        if (matrixLayer === 'billable') reason += ' (Billable = group in network + provider credentialed + licensed in state + linked to group.)';
         if (matrixLayer === 'linked') reason += ' (Fully Linked layer requires group approval + credential linking.)';
 
         html += `<p class="text-sm text-gray-500">${reason}</p>`;
