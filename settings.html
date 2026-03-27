@@ -13,23 +13,18 @@
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['IBM Plex Sans', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              purple: '#7030a0',
-              blue: '#3656b8',
-              cyan: '#01a7cb',
-            }
-          }
+          fontFamily: { sans: ['IBM Plex Sans', 'sans-serif'] },
+          colors: { brand: { purple: '#7030a0', blue: '#3656b8', cyan: '#01a7cb' } }
         }
       }
-    };
+    }
   </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
+  <div id="toast-container"></div>
+
+  <!-- Navigation -->
   <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
@@ -39,57 +34,503 @@
         </div>
         <div class="flex items-center gap-6">
           <a href="index.html" class="text-gray-600 hover:text-gray-900">Finder</a>
-          <a href="roster.html" class="text-gray-600 hover:text-gray-900">Roster</a>
+          <a href="providers.html" class="text-gray-600 hover:text-gray-900">Providers</a>
+          <a href="credentials.html" class="text-gray-600 hover:text-gray-900">Credentials</a>
           <a href="dashboard.html" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+          <a href="action-items.html" class="text-gray-600 hover:text-gray-900">Action Items</a>
+          <a href="pipeline.html" class="text-gray-600 hover:text-gray-900">Pipeline</a>
+          <a href="settings.html" class="text-brand-blue font-medium border-b-2 border-brand-blue pb-1">Settings</a>
         </div>
         <div class="flex items-center gap-4">
           <span id="userEmail" class="text-sm text-gray-600"></span>
           <button id="logoutBtn" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
-            <i data-feather="log-out" class="h-4 w-4"></i>
-            Sign Out
+            <i data-feather="log-out" class="h-4 w-4"></i> Sign Out
           </button>
         </div>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    <section class="bg-white rounded-lg shadow p-8">
-      <div class="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-sm font-medium mb-5">
-        <i data-feather="alert-triangle" class="h-4 w-4"></i>
-        API Migration
+  <main class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Tab Bar -->
+    <div class="border-b border-gray-200 mb-6">
+      <div class="flex gap-0 -mb-px">
+        <button id="tab-btn-locations" data-tab="locations" class="settings-tab px-5 py-3 text-sm font-medium border-b-2 border-brand-blue text-brand-blue">Practice Locations</button>
+        <button id="tab-btn-contacts" data-tab="contacts" class="settings-tab px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Payer Contacts</button>
       </div>
-      <h1 class="text-2xl font-bold text-gray-900">Settings is not available yet</h1>
-      <p class="text-gray-600 mt-3">
-        Practice locations and payer contacts are still waiting on API endpoints. This page is disabled in the
-        API-backed deployment so the GitHub Pages app can run without Supabase.
-      </p>
-      <div class="mt-6 flex flex-wrap gap-3">
-        <a href="roster.html" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-lg font-medium hover:bg-blue-700 transition">
-          <i data-feather="users" class="h-4 w-4"></i>
-          Open Roster
-        </a>
-        <a href="dashboard.html" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition">
-          <i data-feather="bar-chart-2" class="h-4 w-4"></i>
-          Open Dashboard
-        </a>
+    </div>
+
+    <!-- Practice Locations Tab -->
+    <div id="tab-content-locations">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <select id="locStateFilter" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+            <option value="">All States</option>
+          </select>
+          <span id="locCount" class="text-sm text-gray-500"></span>
+        </div>
+        <button id="addLocationBtn" class="px-4 py-1.5 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-1">
+          <i data-feather="plus" class="h-4 w-4"></i> Add Location
+        </button>
       </div>
-    </section>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="locationsTable">
+            <thead>
+              <tr class="text-left text-gray-500 border-b bg-gray-50">
+                <th class="py-2.5 px-3 font-semibold">State</th>
+                <th class="py-2.5 px-3 font-semibold">Address</th>
+                <th class="py-2.5 px-3 font-semibold">Suite</th>
+                <th class="py-2.5 px-3 font-semibold">City</th>
+                <th class="py-2.5 px-3 font-semibold">Zip</th>
+                <th class="py-2.5 px-3 font-semibold">Phone</th>
+                <th class="py-2.5 px-3 font-semibold">Fax</th>
+                <th class="py-2.5 px-3 font-semibold text-center">NPPES</th>
+                <th class="py-2.5 px-3 font-semibold text-center">Tebra</th>
+                <th class="py-2.5 px-3 font-semibold text-center">Trizetto</th>
+                <th class="py-2.5 px-3 font-semibold text-center">CAQH</th>
+                <th class="py-2.5 px-3 font-semibold text-center">Availity</th>
+                <th class="py-2.5 px-3 font-semibold text-center">W9</th>
+                <th class="py-2.5 px-3 font-semibold">Notes</th>
+                <th class="py-2.5 px-3 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="locationsTableBody">
+              <tr><td colspan="15" class="text-center py-8 text-gray-500"><div class="loading-spinner mx-auto"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payer Contacts Tab -->
+    <div id="tab-content-contacts" class="hidden">
+      <div class="flex items-center justify-between mb-4">
+        <span id="contactCount" class="text-sm text-gray-500"></span>
+        <button id="addContactBtn" class="px-4 py-1.5 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-1">
+          <i data-feather="plus" class="h-4 w-4"></i> Add Contact
+        </button>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="contactsTable">
+            <thead>
+              <tr class="text-left text-gray-500 border-b bg-gray-50">
+                <th class="py-2.5 px-3 font-semibold">Payer</th>
+                <th class="py-2.5 px-3 font-semibold">Phone</th>
+                <th class="py-2.5 px-3 font-semibold">Ext / Directions</th>
+                <th class="py-2.5 px-3 font-semibold">Contact Name</th>
+                <th class="py-2.5 px-3 font-semibold">Contact Email</th>
+                <th class="py-2.5 px-3 font-semibold">Cred Form URL</th>
+                <th class="py-2.5 px-3 font-semibold">Notes</th>
+                <th class="py-2.5 px-3 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="contactsTableBody">
+              <tr><td colspan="8" class="text-center py-8 text-gray-500"><div class="loading-spinner mx-auto"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script type="module">
     import { requireAuth, wireLogoutButton } from './auth.js';
+    import { getDataClient } from './dataClient.js';
 
-    async function init() {
-      const user = await requireAuth();
-      document.getElementById('userEmail').textContent = user.email || '';
-      wireLogoutButton();
-      feather.replace();
+    const US_STATES = [
+      {code:"AL"},{code:"AK"},{code:"AZ"},{code:"AR"},{code:"CA"},{code:"CO"},{code:"CT"},{code:"DC"},
+      {code:"DE"},{code:"FL"},{code:"GA"},{code:"HI"},{code:"ID"},{code:"IL"},{code:"IN"},{code:"IA"},
+      {code:"KS"},{code:"KY"},{code:"LA"},{code:"ME"},{code:"MD"},{code:"MA"},{code:"MI"},{code:"MN"},
+      {code:"MS"},{code:"MO"},{code:"MT"},{code:"NE"},{code:"NV"},{code:"NH"},{code:"NJ"},{code:"NM"},
+      {code:"NY"},{code:"NC"},{code:"ND"},{code:"OH"},{code:"OK"},{code:"OR"},{code:"PA"},{code:"RI"},
+      {code:"SC"},{code:"SD"},{code:"TN"},{code:"TX"},{code:"UT"},{code:"VT"},{code:"VA"},{code:"WA"},
+      {code:"WV"},{code:"WI"},{code:"WY"}
+    ];
+
+    let currentUser = null;
+    let db = null;
+    let locations = [];
+    let contacts = [];
+    let locStateFilter = '';
+    let activeTab = 'locations';
+
+    // ─── Utilities ───────────────────────────────────────────────────
+    function showToast(msg, type = 'success') {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.innerHTML = `<i data-feather="${type==='success'?'check-circle':'alert-circle'}" class="h-4 w-4"></i><span>${msg}</span>`;
+      c.appendChild(t);
+      feather.replace({ width: 16, height: 16 });
+      setTimeout(() => { t.style.animation = 'slideOut 0.3s ease-out forwards'; setTimeout(() => t.remove(), 300); }, 3000);
     }
 
-    init().catch((error) => {
-      console.error('Failed to initialize page', error);
-    });
+    function escapeHtml(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+    function makeLink(url) {
+      if (!url) return '—';
+      if (url.match(/^https?:\/\//i)) {
+        const short = url.replace(/^https?:\/\//i, '').substring(0, 30);
+        return `<a href="${escapeHtml(url)}" target="_blank" class="text-brand-blue hover:underline">${short}${url.length > 37 ? '...' : ''}</a>`;
+      }
+      return escapeHtml(url);
+    }
+
+    // ─── Tab Switching ───────────────────────────────────────────────
+    function switchTab(tab) {
+      activeTab = tab;
+      ['locations', 'contacts'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const content = document.getElementById(`tab-content-${t}`);
+        if (t === tab) {
+          btn.classList.add('border-brand-blue', 'text-brand-blue');
+          btn.classList.remove('border-transparent', 'text-gray-500');
+          content.classList.remove('hidden');
+        } else {
+          btn.classList.remove('border-brand-blue', 'text-brand-blue');
+          btn.classList.add('border-transparent', 'text-gray-500');
+          content.classList.add('hidden');
+        }
+      });
+    }
+
+    // ─── Practice Locations ──────────────────────────────────────────
+    async function loadLocations() {
+      const { data, error } = await db.from('practice_locations').select('*').order('state').order('city');
+      if (error) { showToast('Error loading locations', 'error'); return; }
+      locations = data || [];
+      renderLocations();
+    }
+
+    function renderLocations() {
+      const filtered = locStateFilter ? locations.filter(l => l.state === locStateFilter) : locations;
+      document.getElementById('locCount').textContent = `${filtered.length} location${filtered.length !== 1 ? 's' : ''}`;
+      const tbody = document.getElementById('locationsTableBody');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-gray-500">No locations found</td></tr>';
+        feather.replace({ width: 16, height: 16 });
+        return;
+      }
+
+      const BOOLS = ['nppes_registered', 'tebra_registered', 'trizetto_registered', 'caqh_registered', 'availity_registered', 'w9_on_file'];
+
+      tbody.innerHTML = filtered.map(l => {
+        const checks = BOOLS.map(b =>
+          `<td class="py-2 px-3 text-center">
+            <input type="checkbox" ${l[b] ? 'checked' : ''} onchange="window._toggleLocBool('${l.id}', '${b}', this.checked)"
+              class="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue cursor-pointer">
+          </td>`
+        ).join('');
+
+        return `
+          <tr class="border-b border-gray-100" id="loc-row-${l.id}">
+            <td class="py-2 px-3 font-medium">${l.state}</td>
+            <td class="py-2 px-3">${escapeHtml(l.address) || '—'}</td>
+            <td class="py-2 px-3">${escapeHtml(l.suite) || '—'}</td>
+            <td class="py-2 px-3">${escapeHtml(l.city) || '—'}</td>
+            <td class="py-2 px-3">${escapeHtml(l.zip) || '—'}</td>
+            <td class="py-2 px-3">${escapeHtml(l.phone) || '—'}</td>
+            <td class="py-2 px-3">${escapeHtml(l.fax) || '—'}</td>
+            ${checks}
+            <td class="py-2 px-3 text-gray-500 truncate max-w-[100px]" title="${escapeHtml(l.notes)}">${escapeHtml(l.notes) || '—'}</td>
+            <td class="py-2 px-3">
+              <div class="flex items-center gap-1">
+                <button onclick="window._editLocation('${l.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit"><i data-feather="edit-2" class="h-4 w-4"></i></button>
+                <button onclick="window._deleteLocation('${l.id}')" class="p-1 text-gray-400 hover:text-red-600" title="Delete"><i data-feather="trash-2" class="h-4 w-4"></i></button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      feather.replace({ width: 16, height: 16 });
+    }
+
+    window._toggleLocBool = async (id, field, val) => {
+      const { error } = await db.from('practice_locations').update({ [field]: val }).eq('id', id);
+      if (error) { showToast('Error updating', 'error'); return; }
+      const loc = locations.find(l => l.id === id);
+      if (loc) loc[field] = val;
+    };
+
+    window._addLocation = () => {
+      const tbody = document.getElementById('locationsTableBody');
+      if (document.getElementById('loc-row-new')) return;
+      const row = document.createElement('tr');
+      row.id = 'loc-row-new';
+      row.className = 'bg-green-50 border-b border-gray-100';
+      row.innerHTML = `
+        <td class="py-2 px-3"><select id="loc-state-new" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">${US_STATES.map(s=>`<option value="${s.code}">${s.code}</option>`).join('')}</select></td>
+        <td class="py-2 px-3"><input id="loc-addr-new" placeholder="Address" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-suite-new" placeholder="Suite" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-city-new" placeholder="City" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-zip-new" placeholder="Zip" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-phone-new" placeholder="Phone" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-fax-new" placeholder="Fax" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-nppes-new" class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-tebra-new" class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-trizetto-new" class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-caqh-new" class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-availity-new" class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-w9-new" class="w-4 h-4"></td>
+        <td class="py-2 px-3"><input id="loc-notes-new" placeholder="Notes" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3">
+          <div class="flex items-center gap-1">
+            <button onclick="window._saveNewLocation()" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Add</button>
+            <button onclick="document.getElementById('loc-row-new').remove()" class="px-2 py-1 border border-gray-300 rounded text-xs">Cancel</button>
+          </div>
+        </td>
+      `;
+      tbody.insertBefore(row, tbody.firstChild);
+    };
+
+    window._saveNewLocation = async () => {
+      const { error } = await db.from('practice_locations').insert({
+        state: document.getElementById('loc-state-new').value,
+        address: document.getElementById('loc-addr-new').value || null,
+        suite: document.getElementById('loc-suite-new').value || null,
+        city: document.getElementById('loc-city-new').value || null,
+        zip: document.getElementById('loc-zip-new').value || null,
+        phone: document.getElementById('loc-phone-new').value || null,
+        fax: document.getElementById('loc-fax-new').value || null,
+        nppes_registered: document.getElementById('loc-nppes-new').checked,
+        tebra_registered: document.getElementById('loc-tebra-new').checked,
+        trizetto_registered: document.getElementById('loc-trizetto-new').checked,
+        caqh_registered: document.getElementById('loc-caqh-new').checked,
+        availity_registered: document.getElementById('loc-availity-new').checked,
+        w9_on_file: document.getElementById('loc-w9-new').checked,
+        notes: document.getElementById('loc-notes-new').value || null
+      });
+      if (error) { showToast('Error adding location', 'error'); console.error(error); return; }
+      showToast('Location added');
+      await loadLocations();
+    };
+
+    window._editLocation = async (id) => {
+      const { data: l, error } = await db.from('practice_locations').select('*').eq('id', id).single();
+      if (error || !l) { showToast('Error loading location', 'error'); return; }
+
+      const row = document.getElementById(`loc-row-${id}`);
+      if (!row) return;
+      row.className = 'bg-blue-50 border-b border-gray-100';
+      row.innerHTML = `
+        <td class="py-2 px-3"><select id="loc-state-${id}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">${US_STATES.map(s=>`<option value="${s.code}" ${s.code===l.state?'selected':''}>${s.code}</option>`).join('')}</select></td>
+        <td class="py-2 px-3"><input id="loc-addr-${id}" value="${escapeHtml(l.address)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-suite-${id}" value="${escapeHtml(l.suite)||''}" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-city-${id}" value="${escapeHtml(l.city)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-zip-${id}" value="${escapeHtml(l.zip)||''}" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-phone-${id}" value="${escapeHtml(l.phone)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="loc-fax-${id}" value="${escapeHtml(l.fax)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-nppes-${id}" ${l.nppes_registered?'checked':''} class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-tebra-${id}" ${l.tebra_registered?'checked':''} class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-trizetto-${id}" ${l.trizetto_registered?'checked':''} class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-caqh-${id}" ${l.caqh_registered?'checked':''} class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-availity-${id}" ${l.availity_registered?'checked':''} class="w-4 h-4"></td>
+        <td class="py-2 px-3 text-center"><input type="checkbox" id="loc-w9-${id}" ${l.w9_on_file?'checked':''} class="w-4 h-4"></td>
+        <td class="py-2 px-3"><input id="loc-notes-${id}" value="${escapeHtml(l.notes)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3">
+          <div class="flex items-center gap-1">
+            <button onclick="window._saveLocation('${id}')" class="px-2 py-1 bg-brand-blue text-white rounded text-xs">Save</button>
+            <button onclick="window._reloadLoc()" class="px-2 py-1 border border-gray-300 rounded text-xs">Cancel</button>
+          </div>
+        </td>
+      `;
+    };
+
+    window._saveLocation = async (id) => {
+      const { error } = await db.from('practice_locations').update({
+        state: document.getElementById(`loc-state-${id}`).value,
+        address: document.getElementById(`loc-addr-${id}`).value || null,
+        suite: document.getElementById(`loc-suite-${id}`).value || null,
+        city: document.getElementById(`loc-city-${id}`).value || null,
+        zip: document.getElementById(`loc-zip-${id}`).value || null,
+        phone: document.getElementById(`loc-phone-${id}`).value || null,
+        fax: document.getElementById(`loc-fax-${id}`).value || null,
+        nppes_registered: document.getElementById(`loc-nppes-${id}`).checked,
+        tebra_registered: document.getElementById(`loc-tebra-${id}`).checked,
+        trizetto_registered: document.getElementById(`loc-trizetto-${id}`).checked,
+        caqh_registered: document.getElementById(`loc-caqh-${id}`).checked,
+        availity_registered: document.getElementById(`loc-availity-${id}`).checked,
+        w9_on_file: document.getElementById(`loc-w9-${id}`).checked,
+        notes: document.getElementById(`loc-notes-${id}`).value || null
+      }).eq('id', id);
+      if (error) { showToast('Error saving', 'error'); console.error(error); return; }
+      showToast('Location updated');
+      await loadLocations();
+    };
+
+    window._deleteLocation = async (id) => {
+      if (!confirm('Delete this location?')) return;
+      const { error } = await db.from('practice_locations').delete().eq('id', id);
+      if (error) { showToast('Error deleting', 'error'); return; }
+      showToast('Location deleted');
+      await loadLocations();
+    };
+
+    window._reloadLoc = () => loadLocations();
+
+    // ─── Payer Contacts ──────────────────────────────────────────────
+    async function loadContacts() {
+      const { data, error } = await db.from('payer_contacts').select('*').order('payer');
+      if (error) { showToast('Error loading contacts', 'error'); return; }
+      contacts = data || [];
+      renderContacts();
+    }
+
+    function renderContacts() {
+      document.getElementById('contactCount').textContent = `${contacts.length} payer contact${contacts.length !== 1 ? 's' : ''}`;
+      const tbody = document.getElementById('contactsTableBody');
+
+      if (contacts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500">No payer contacts yet</td></tr>';
+        feather.replace({ width: 16, height: 16 });
+        return;
+      }
+
+      tbody.innerHTML = contacts.map(c => `
+        <tr class="border-b border-gray-100" id="contact-row-${c.id}">
+          <td class="py-2 px-3 font-medium">${escapeHtml(c.payer)}</td>
+          <td class="py-2 px-3">${escapeHtml(c.phone) || '—'}</td>
+          <td class="py-2 px-3 text-sm text-gray-500">${escapeHtml(c.extension_or_directions) || '—'}</td>
+          <td class="py-2 px-3">${escapeHtml(c.contact_name) || '—'}</td>
+          <td class="py-2 px-3">${escapeHtml(c.contact_email) || '—'}</td>
+          <td class="py-2 px-3">${makeLink(c.credentialing_form_url)}</td>
+          <td class="py-2 px-3 text-gray-500 truncate max-w-[120px]" title="${escapeHtml(c.notes)}">${escapeHtml(c.notes) || '—'}</td>
+          <td class="py-2 px-3">
+            <div class="flex items-center gap-1">
+              <button onclick="window._editContact('${c.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit"><i data-feather="edit-2" class="h-4 w-4"></i></button>
+              <button onclick="window._deleteContact('${c.id}')" class="p-1 text-gray-400 hover:text-red-600" title="Delete"><i data-feather="trash-2" class="h-4 w-4"></i></button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      feather.replace({ width: 16, height: 16 });
+    }
+
+    window._addContact = () => {
+      const tbody = document.getElementById('contactsTableBody');
+      if (document.getElementById('contact-row-new')) return;
+      const row = document.createElement('tr');
+      row.id = 'contact-row-new';
+      row.className = 'bg-green-50 border-b border-gray-100';
+      row.innerHTML = `
+        <td class="py-2 px-3"><input id="ct-payer-new" placeholder="Payer name" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-phone-new" placeholder="Phone" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-ext-new" placeholder="Ext / directions" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-name-new" placeholder="Contact name" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-email-new" placeholder="Email" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-url-new" placeholder="https://..." class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-notes-new" placeholder="Notes" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3">
+          <div class="flex items-center gap-1">
+            <button onclick="window._saveNewContact()" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Add</button>
+            <button onclick="document.getElementById('contact-row-new').remove()" class="px-2 py-1 border border-gray-300 rounded text-xs">Cancel</button>
+          </div>
+        </td>
+      `;
+      tbody.insertBefore(row, tbody.firstChild);
+    };
+
+    window._saveNewContact = async () => {
+      const payer = document.getElementById('ct-payer-new').value.trim();
+      if (!payer) { showToast('Payer name is required', 'error'); return; }
+
+      const { error } = await db.from('payer_contacts').insert({
+        payer,
+        phone: document.getElementById('ct-phone-new').value || null,
+        extension_or_directions: document.getElementById('ct-ext-new').value || null,
+        contact_name: document.getElementById('ct-name-new').value || null,
+        contact_email: document.getElementById('ct-email-new').value || null,
+        credentialing_form_url: document.getElementById('ct-url-new').value || null,
+        notes: document.getElementById('ct-notes-new').value || null
+      });
+      if (error) { showToast('Error adding contact', 'error'); console.error(error); return; }
+      showToast('Contact added');
+      await loadContacts();
+    };
+
+    window._editContact = async (id) => {
+      const { data: c, error } = await db.from('payer_contacts').select('*').eq('id', id).single();
+      if (error || !c) { showToast('Error loading contact', 'error'); return; }
+
+      const row = document.getElementById(`contact-row-${id}`);
+      if (!row) return;
+      row.className = 'bg-blue-50 border-b border-gray-100';
+      row.innerHTML = `
+        <td class="py-2 px-3"><input id="ct-payer-${id}" value="${escapeHtml(c.payer)}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-phone-${id}" value="${escapeHtml(c.phone)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-ext-${id}" value="${escapeHtml(c.extension_or_directions)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-name-${id}" value="${escapeHtml(c.contact_name)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-email-${id}" value="${escapeHtml(c.contact_email)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-url-${id}" value="${escapeHtml(c.credentialing_form_url)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3"><input id="ct-notes-${id}" value="${escapeHtml(c.notes)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
+        <td class="py-2 px-3">
+          <div class="flex items-center gap-1">
+            <button onclick="window._saveContact('${id}')" class="px-2 py-1 bg-brand-blue text-white rounded text-xs">Save</button>
+            <button onclick="window._reloadContacts()" class="px-2 py-1 border border-gray-300 rounded text-xs">Cancel</button>
+          </div>
+        </td>
+      `;
+    };
+
+    window._saveContact = async (id) => {
+      const { error } = await db.from('payer_contacts').update({
+        payer: document.getElementById(`ct-payer-${id}`).value,
+        phone: document.getElementById(`ct-phone-${id}`).value || null,
+        extension_or_directions: document.getElementById(`ct-ext-${id}`).value || null,
+        contact_name: document.getElementById(`ct-name-${id}`).value || null,
+        contact_email: document.getElementById(`ct-email-${id}`).value || null,
+        credentialing_form_url: document.getElementById(`ct-url-${id}`).value || null,
+        notes: document.getElementById(`ct-notes-${id}`).value || null
+      }).eq('id', id);
+      if (error) { showToast('Error saving', 'error'); console.error(error); return; }
+      showToast('Contact updated');
+      await loadContacts();
+    };
+
+    window._deleteContact = async (id) => {
+      if (!confirm('Delete this payer contact?')) return;
+      const { error } = await db.from('payer_contacts').delete().eq('id', id);
+      if (error) { showToast('Error deleting', 'error'); return; }
+      showToast('Contact deleted');
+      await loadContacts();
+    };
+
+    window._reloadContacts = () => loadContacts();
+
+    // ─── Init ────────────────────────────────────────────────────────
+    async function init() {
+      try {
+        currentUser = await requireAuth();
+        db = await getDataClient();
+        document.getElementById('userEmail').textContent = currentUser.email;
+        wireLogoutButton();
+
+        // Tab switching
+        document.querySelectorAll('.settings-tab').forEach(btn => {
+          btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // Location state filter
+        const sf = document.getElementById('locStateFilter');
+        US_STATES.forEach(s => { const o = document.createElement('option'); o.value = s.code; o.textContent = s.code; sf.appendChild(o); });
+        sf.addEventListener('change', (e) => { locStateFilter = e.target.value; renderLocations(); });
+
+        // Add buttons
+        document.getElementById('addLocationBtn').addEventListener('click', window._addLocation);
+        document.getElementById('addContactBtn').addEventListener('click', window._addContact);
+
+        // Load both datasets
+        await Promise.all([loadLocations(), loadContacts()]);
+        feather.replace();
+      } catch (e) { console.error('Init error:', e); }
+    }
+
+    init();
   </script>
 </body>
 </html>

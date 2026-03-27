@@ -43,8 +43,12 @@
         </div>
         <div class="flex items-center gap-6">
           <a href="index.html" class="text-gray-600 hover:text-gray-900">Finder</a>
-          <a href="roster.html" class="text-gray-600 hover:text-gray-900">Roster</a>
+          <a href="providers.html" class="text-gray-600 hover:text-gray-900">Providers</a>
+          <a href="credentials.html" class="text-gray-600 hover:text-gray-900">Credentials</a>
           <a href="dashboard.html" class="text-brand-blue font-medium border-b-2 border-brand-blue pb-1">Dashboard</a>
+          <a href="action-items.html" class="text-gray-600 hover:text-gray-900">Action Items</a>
+          <a href="pipeline.html" class="text-gray-600 hover:text-gray-900">Pipeline</a>
+          <a href="settings.html" class="text-gray-600 hover:text-gray-900">Settings</a>
         </div>
         <div class="flex items-center gap-4">
           <span id="userEmail" class="text-sm text-gray-600"></span>
@@ -59,71 +63,123 @@
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
+    <!-- ─── Summary Cards ─────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+      <!-- Card 1: Onboarding Pipeline -->
       <div class="bg-white rounded-lg shadow p-4">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-green-100 rounded-lg">
-            <i data-feather="users" class="h-5 w-5 text-green-600"></i>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="p-1.5 bg-green-100 rounded">
+            <i data-feather="users" class="h-4 w-4 text-green-600"></i>
           </div>
-          <div>
-            <div class="text-sm text-gray-500">Active Providers</div>
-            <div class="text-2xl font-bold text-gray-900" id="statActiveProviders">0</div>
-          </div>
+          <span class="text-sm font-medium text-gray-500">Onboarding Pipeline</span>
+        </div>
+        <div id="cardOnboarding" class="space-y-1 text-sm">
+          <div class="loading-spinner"></div>
         </div>
       </div>
+
+      <!-- Card 2: License Expirations -->
       <div class="bg-white rounded-lg shadow p-4">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-blue-100 rounded-lg">
-            <i data-feather="map" class="h-5 w-5 text-blue-600"></i>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="p-1.5 bg-amber-100 rounded">
+            <i data-feather="calendar" class="h-4 w-4 text-amber-600"></i>
           </div>
-          <div>
-            <div class="text-sm text-gray-500">States Covered</div>
-            <div class="text-2xl font-bold text-gray-900" id="statStatesCovered">0</div>
-          </div>
+          <span class="text-sm font-medium text-gray-500">License Expirations</span>
+        </div>
+        <div id="cardLicenses" class="space-y-1 text-sm">
+          <div class="loading-spinner"></div>
         </div>
       </div>
+
+      <!-- Card 3: Credential Pipeline -->
       <div class="bg-white rounded-lg shadow p-4">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-purple-100 rounded-lg">
-            <i data-feather="shield" class="h-5 w-5 text-purple-600"></i>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="p-1.5 bg-blue-100 rounded">
+            <i data-feather="shield" class="h-4 w-4 text-blue-600"></i>
           </div>
-          <div>
-            <div class="text-sm text-gray-500">Payers Covered</div>
-            <div class="text-2xl font-bold text-gray-900" id="statPayersCovered">0</div>
-          </div>
+          <span class="text-sm font-medium text-gray-500">Credential Pipeline</span>
+        </div>
+        <div id="cardCredPipeline" class="space-y-1 text-sm">
+          <div class="loading-spinner"></div>
         </div>
       </div>
+
+      <!-- Card 4: Coverage Summary -->
       <div class="bg-white rounded-lg shadow p-4">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-red-100 rounded-lg">
-            <i data-feather="alert-triangle" class="h-5 w-5 text-red-600"></i>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="p-1.5 bg-purple-100 rounded">
+            <i data-feather="map" class="h-4 w-4 text-purple-600"></i>
           </div>
-          <div>
-            <div class="text-sm text-gray-500">Coverage Gaps</div>
-            <div class="text-2xl font-bold text-gray-900" id="statGaps">0</div>
-          </div>
+          <span class="text-sm font-medium text-gray-500">Coverage Summary</span>
+        </div>
+        <div id="cardCoverage" class="space-y-1 text-sm">
+          <div class="loading-spinner"></div>
         </div>
       </div>
+
+      <!-- Card 5: Recruiting Pipeline -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="p-1.5 bg-cyan-100 rounded">
+            <i data-feather="user-plus" class="h-4 w-4 text-cyan-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-500">Recruiting Pipeline</span>
+        </div>
+        <div id="cardRecruiting" class="space-y-1 text-sm">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+
+      <!-- Card 6: Action Items -->
+      <a href="action-items.html" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="p-1.5 bg-red-100 rounded">
+            <i data-feather="alert-circle" class="h-4 w-4 text-red-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-500">Action Items</span>
+        </div>
+        <div id="cardActionItems" class="space-y-1 text-sm">
+          <div class="loading-spinner"></div>
+        </div>
+      </a>
     </div>
 
-    <!-- Coverage Gap Matrix -->
+    <!-- ─── Coverage Gap Matrix ───────────────────────────────────── -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-900">Coverage Gap Matrix</h2>
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" id="priorityStatesToggle" class="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue">
-          <span class="text-sm text-gray-700">Priority States Only</span>
-        </label>
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Coverage Matrix</h2>
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Layer Selector -->
+          <div class="flex rounded-lg border border-gray-300 overflow-hidden" id="layerSelector">
+            <button data-layer="billable" class="layer-btn px-3 py-1.5 text-sm font-medium bg-brand-blue text-white">Billable</button>
+            <button data-layer="credentials" class="layer-btn px-3 py-1.5 text-sm font-medium bg-white text-gray-600 border-l border-gray-300 hover:bg-gray-50">Individual Credentials</button>
+            <button data-layer="group" class="layer-btn px-3 py-1.5 text-sm font-medium bg-white text-gray-600 border-l border-gray-300 hover:bg-gray-50">Group Enrollment</button>
+            <button data-layer="linked" class="layer-btn px-3 py-1.5 text-sm font-medium bg-white text-gray-600 border-l border-gray-300 hover:bg-gray-50">Fully Linked</button>
+          </div>
+
+          <!-- Payer Filter -->
+          <select id="payerFilter" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
+            <option value="">All Payers</option>
+          </select>
+
+          <!-- Priority States Toggle -->
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="priorityStatesToggle" class="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue">
+            <span class="text-sm text-gray-700">Priority States Only</span>
+          </label>
+        </div>
       </div>
-      <div class="mb-4 flex flex-wrap gap-4 text-sm">
+
+      <!-- Legend -->
+      <div class="mb-4 flex flex-wrap gap-4 text-sm" id="matrixLegend">
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
           <span class="text-gray-600">Routable Now</span>
         </div>
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
-          <span class="text-gray-600">Approved - Pending Effective</span>
+          <span class="text-gray-600">Approved - Pending</span>
         </div>
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-amber-100 border border-amber-300 rounded"></div>
@@ -131,22 +187,31 @@
         </div>
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
-          <span class="text-gray-600">Gap</span>
+          <span class="text-gray-600">Gap / Denied</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-gray-100 border border-gray-300 rounded"></div>
+          <span class="text-gray-600">No Record</span>
         </div>
       </div>
+
       <div class="overflow-x-auto">
         <table class="min-w-full" id="coverageMatrix">
           <thead>
             <tr>
-              <th class="text-left py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50">State</th>
+              <th class="text-left py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50 sticky left-0">State</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
+      <div id="blockedFootnote"></div>
+      <div class="mt-3 text-right">
+        <span id="statGapsLabel" class="text-sm text-gray-500"></span>
+      </div>
     </div>
 
-    <!-- Two Column Layout -->
+    <!-- ─── Two Column Layout ─────────────────────────────────────── -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Top Unmatched Searches -->
       <div class="bg-white rounded-lg shadow p-6">
@@ -188,11 +253,40 @@
     </div>
   </main>
 
+  <!-- ─── Cell Detail Panel (slide-out) ─────────────────────────── -->
+  <div id="cellDetailPanel" class="hidden fixed top-16 bottom-0 right-0 w-full max-w-lg bg-white shadow-xl z-40 overflow-y-auto">
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h3 id="cellDetailTitle" class="text-xl font-bold text-gray-900"></h3>
+        <button id="closeCellDetail" class="text-gray-400 hover:text-gray-600">
+          <i data-feather="x" class="h-6 w-6"></i>
+        </button>
+      </div>
+      <div id="cellDetailContent">
+        <div class="flex justify-center py-8"><div class="loading-spinner"></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="cellDetailBackdrop" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30"></div>
+
+  <!-- ─── License Expiration Modal ──────────────────────────────── -->
+  <div id="licenseModal" class="modal-backdrop hidden">
+    <div class="modal-content w-full max-w-2xl p-6 m-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Expiring Licenses</h3>
+        <button id="closeLicenseModal" class="text-gray-400 hover:text-gray-600">
+          <i data-feather="x" class="h-6 w-6"></i>
+        </button>
+      </div>
+      <div id="licenseModalContent"></div>
+    </div>
+  </div>
+
   <script type="module">
     import { requireAuth, wireLogoutButton, getCurrentUser } from './auth.js';
-    import { apiRequest } from './apiClient.js';
+    import { getDataClient } from './dataClient.js';
 
-    // Constants
+    // ─── Constants ───────────────────────────────────────────────────
     const US_STATES = [
       { code: "AL", name: "Alabama" }, { code: "AK", name: "Alaska" },
       { code: "AZ", name: "Arizona" }, { code: "AR", name: "Arkansas" },
@@ -223,140 +317,721 @@
     ];
 
     const CANONICAL_PAYERS = ["Medicare", "Medicaid", "Aetna", "UHC", "BCBS", "Cigna", "Humana", "TRICARE"];
-    const OTHER_PAYERS = ["Claritev/Multiplan", "Ambetter", "Devoted Health", "Oscar", "Optum"];
-    const ALL_PAYERS = [...CANONICAL_PAYERS, ...OTHER_PAYERS];
     const PRIORITY_STATES = ["FL", "AZ", "MS", "MI", "NV", "TX", "TN", "PA", "MT", "ID", "WA"];
 
+    // ─── State ───────────────────────────────────────────────────────
     let currentUser = null;
-    let routingActivity = [];
-    let unmatchedItems = [];
-    let currentCoverage = null;
+    let db = null;
 
-    // Get state name from code
+    // Raw data
+    let providers = [];
+    let credentials = [];     // all creds with provider + linking
+    let groupEnrollments = [];
+    let routingLogs = [];
+    let expiringLicenses = [];
+    let pipelineData = [];
+    let actionItemsData = [];
+
+    // Matrix settings
+    let matrixLayer = 'billable';  // 'billable' | 'credentials' | 'group' | 'linked'
+    let payerFilter = '';
+    let priorityOnly = false;
+
+    // ─── Utilities ───────────────────────────────────────────────────
     function getStateName(code) {
-      const state = US_STATES.find(s => s.code === code);
-      return state ? state.name : code;
+      const s = US_STATES.find(s => s.code === code);
+      return s ? s.name : code;
     }
 
-    // Format date
-    function formatDate(dateStr) {
+    function formatDateRelative(dateStr) {
       if (!dateStr) return '';
       const date = new Date(dateStr);
       const now = new Date();
       const diff = now - date;
-
       if (diff < 60000) return 'Just now';
       if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
       if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
-    async function loadCoverage(priorityOnly = false) {
-      currentCoverage = await apiRequest(`/dashboard/coverage?priority_only=${priorityOnly}`);
-      return currentCoverage;
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      // Parse date-only strings as local dates to avoid UTC offset shifting
+      const s = String(dateStr);
+      if (s.length === 10 && s[4] === '-') {
+        const [y, m, d] = s.split('-');
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    function buildCoverageMatrix() {
-      if (!currentCoverage) return;
+    function todayStr() {
+      return new Date().toLocaleDateString('sv');
+    }
 
-      const statesToShow = currentCoverage.states || [];
-      const payersToShow = currentCoverage.payers || CANONICAL_PAYERS;
-      const matrix = currentCoverage.matrix || {};
-      const blockedCount = currentCoverage.blocked_with_credentials || 0;
+    function firstOfMonth() {
+      const d = new Date();
+      return new Date(d.getFullYear(), d.getMonth(), 1).toLocaleDateString('sv');
+    }
 
-      document.getElementById('statActiveProviders').textContent = currentCoverage.active_providers || 0;
-      document.getElementById('statStatesCovered').textContent = currentCoverage.states_covered || 0;
-      document.getElementById('statPayersCovered').textContent = currentCoverage.payers_covered || 0;
-      document.getElementById('statGaps').textContent = currentCoverage.gaps || 0;
+    function daysFromNow(n) {
+      return new Date(Date.now() + n * 86400000).toLocaleDateString('sv');
+    }
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ─── Data Loading ────────────────────────────────────────────────
+    async function loadAllData() {
+      const today = todayStr();
+      const ninety = daysFromNow(90);
+
+      const [provRes, credRes, groupRes, logRes, licRes, pipeRes, actionRes] = await Promise.all([
+        db.from('providers').select('id, first_name, last_name, status, email, personal_npi'),
+        db.from('provider_credentials').select('*, providers!inner(id, first_name, last_name, status, licensed_states), credential_linking(linked)'),
+        db.from('group_enrollments').select('*'),
+        db.from('routing_log').select('*, providers(first_name, last_name)').order('created_at', { ascending: false }).limit(50),
+        db.from('provider_licenses').select('*, providers!inner(first_name, last_name, status)').lte('expiration_date', ninety).order('expiration_date'),
+        db.from('provider_pipeline').select('stage'),
+        db.from('action_items').select('id, status, priority, due_date').in('status', ['Open', 'In Progress'])
+      ]);
+
+      providers = provRes.data || [];
+
+      // Handle credential loading — fallback if !inner fails
+      if (credRes.error) {
+        const fallback = await db.from('provider_credentials').select('*, credential_linking(linked)');
+        credentials = (fallback.data || []).map(c => {
+          const p = providers.find(p => p.id === c.provider_id);
+          return { ...c, providers: p || null };
+        });
+      } else {
+        credentials = credRes.data || [];
+      }
+
+      groupEnrollments = groupRes.data || [];
+      routingLogs = logRes.data || [];
+      expiringLicenses = licRes.data || [];
+      pipelineData = pipeRes.data || [];
+      actionItemsData = actionRes.data || [];
+    }
+
+    // ─── Summary Cards ───────────────────────────────────────────────
+    function renderCards() {
+      const today = todayStr();
+      const thirty = daysFromNow(30);
+      const fom = firstOfMonth();
+
+      // Card 1: Onboarding Pipeline
+      const statusCounts = { Active: 0, 'In Progress': 0, Blocked: 0, 'On Hold': 0, Inactive: 0 };
+      providers.forEach(p => { if (statusCounts[p.status] !== undefined) statusCounts[p.status]++; });
+
+      document.getElementById('cardOnboarding').innerHTML = `
+        <a href="providers.html" class="flex justify-between hover:bg-gray-50 rounded px-1 -mx-1">
+          <span class="text-green-600 font-medium">${statusCounts.Active} Active</span>
+          <span class="text-amber-500 font-medium">${statusCounts['In Progress']} In Progress</span>
+        </a>
+        <a href="providers.html" class="flex justify-between hover:bg-gray-50 rounded px-1 -mx-1">
+          <span class="text-red-600 font-medium">${statusCounts.Blocked} Blocked</span>
+          <span class="text-gray-500 font-medium">${statusCounts['On Hold']} On Hold</span>
+        </a>
+      `;
+
+      // Card 2: License Expirations
+      const licExpired = expiringLicenses.filter(l => l.expiration_date < today).length;
+      const expiring30 = expiringLicenses.filter(l => l.expiration_date >= today && l.expiration_date <= thirty).length;
+      const expiring90 = expiringLicenses.filter(l => l.expiration_date >= today).length;
+
+      document.getElementById('cardLicenses').innerHTML = `
+        ${licExpired > 0 ? `
+        <button onclick="window._showLicenseModal(-1)" class="block w-full text-left hover:bg-gray-50 rounded px-1 -mx-1">
+          <span class="text-red-600 font-bold">${licExpired}</span>
+          <span class="text-gray-600"> expired</span>
+        </button>
+        ` : ''}
+        <button onclick="window._showLicenseModal(30)" class="block w-full text-left hover:bg-gray-50 rounded px-1 -mx-1">
+          <span class="${expiring30 > 0 ? 'text-red-600' : 'text-gray-500'} font-bold">${expiring30}</span>
+          <span class="text-gray-600"> expiring in 30 days</span>
+        </button>
+        <button onclick="window._showLicenseModal(90)" class="block w-full text-left hover:bg-gray-50 rounded px-1 -mx-1">
+          <span class="text-amber-600 font-bold">${expiring90}</span>
+          <span class="text-gray-600"> expiring in 90 days</span>
+        </button>
+      `;
+
+      // Card 3: Credential Pipeline
+      const approvedThisMonth = credentials.filter(c => c.status === 'Approved' && c.effective_date && c.effective_date >= fom).length;
+      const inProgress = credentials.filter(c => c.status === 'In Progress').length;
+      const overdue = credentials.filter(c => c.follow_up_date && c.follow_up_date < today && ['In Progress', 'On Hold'].includes(c.status)).length;
+
+      document.getElementById('cardCredPipeline').innerHTML = `
+        <div class="flex justify-between px-1">
+          <span class="text-green-600 font-bold">${approvedThisMonth}</span>
+          <span class="text-gray-500">approved this month</span>
+        </div>
+        <div class="flex justify-between px-1">
+          <span class="text-brand-blue font-bold">${inProgress}</span>
+          <span class="text-gray-500">in progress</span>
+        </div>
+        <a href="credentials.html" class="block hover:bg-gray-50 rounded px-1 -mx-1">
+          <span class="${overdue > 0 ? 'text-red-600' : 'text-gray-500'} font-bold">${overdue}</span>
+          <span class="text-gray-500"> follow-ups overdue</span>
+        </a>
+      `;
+
+      // Card 4: Coverage Summary
+      const coveredStates = new Set();
+      const coveredPayers = new Set();
+      credentials.forEach(c => {
+        if (c.status === 'Approved' && c.effective_date && c.effective_date <= today && c.providers && c.providers.status === 'Active') {
+          coveredStates.add(c.state);
+          coveredPayers.add(c.payer);
+        }
+      });
+
+      document.getElementById('cardCoverage').innerHTML = `
+        <div class="flex justify-between px-1">
+          <span class="text-brand-blue font-bold text-lg">${coveredStates.size}</span>
+          <span class="text-gray-500">states with coverage</span>
+        </div>
+        <div class="flex justify-between px-1">
+          <span class="text-brand-purple font-bold text-lg">${coveredPayers.size}</span>
+          <span class="text-gray-500">payers active</span>
+        </div>
+      `;
+
+      // Card 5: Recruiting Pipeline
+      const stageCounts = {};
+      pipelineData.forEach(p => { stageCounts[p.stage] = (stageCounts[p.stage] || 0) + 1; });
+
+      document.getElementById('cardRecruiting').innerHTML = `
+        <div class="flex justify-between px-1">
+          <span class="text-gray-700 font-bold">${stageCounts['Prospect'] || 0}</span>
+          <span class="text-gray-500">prospects</span>
+        </div>
+        <div class="flex justify-between px-1">
+          <span class="text-brand-cyan font-bold">${stageCounts['Contacted'] || 0}</span>
+          <span class="text-gray-500">contacted</span>
+        </div>
+        <div class="flex justify-between px-1">
+          <span class="text-green-600 font-bold">${stageCounts['Interested'] || 0}</span>
+          <span class="text-gray-500">interested</span>
+        </div>
+      `;
+
+      // Card 6: Action Items — count auto-generated critical/high + manual overdue
+      const todayForActions = todayStr();
+      // Count auto-generated: expired licenses + overdue follow-ups
+      let autoCriticalHigh = 0;
+      // Expired licenses (not already in the 90-day window query — need to check all licenses)
+      const allLicExpired = expiringLicenses.filter(l => l.expiration_date && l.expiration_date < todayForActions).length;
+      const licExpiring30 = expiringLicenses.filter(l => l.expiration_date && l.expiration_date >= todayForActions && l.expiration_date <= daysFromNow(30)).length;
+      autoCriticalHigh += allLicExpired + licExpiring30;
+      // Overdue credential follow-ups
+      const overdueCredFu = credentials.filter(c => c.follow_up_date && c.follow_up_date < todayForActions && ['In Progress', 'On Hold'].includes(c.status)).length;
+      autoCriticalHigh += overdueCredFu;
+      // Overdue group enrollment follow-ups
+      const overdueGroupFu = groupEnrollments.filter(g => g.follow_up_date && g.follow_up_date < todayForActions && ['In Progress', 'On Hold', 'Not Started'].includes(g.status)).length;
+      autoCriticalHigh += overdueGroupFu;
+
+      // Manual items overdue
+      const manualOverdue = actionItemsData.filter(a => a.due_date && a.due_date < todayForActions).length;
+      const manualCritical = actionItemsData.filter(a => a.priority === 'Critical').length;
+
+      const totalAttention = autoCriticalHigh + manualCritical + manualOverdue;
+
+      document.getElementById('cardActionItems').innerHTML = `
+        <div class="text-lg font-bold ${totalAttention > 0 ? 'text-red-600' : 'text-green-600'}">${totalAttention > 0 ? `${totalAttention} need attention` : 'All clear'}</div>
+        <div class="flex justify-between px-1 text-xs">
+          ${allLicExpired > 0 ? `<span class="text-red-600 font-medium">${allLicExpired} expired lic.</span>` : ''}
+          ${overdueCredFu + overdueGroupFu > 0 ? `<span class="text-orange-600 font-medium">${overdueCredFu + overdueGroupFu} overdue</span>` : ''}
+          ${totalAttention === 0 ? '<span class="text-gray-400">No urgent items</span>' : ''}
+        </div>
+      `;
+    }
+
+    // ─── License Expiration Modal ────────────────────────────────────
+    window._showLicenseModal = (days) => {
+      const todayVal = todayStr();
+      let filtered;
+      if (days === -1) {
+        // Show expired only
+        filtered = expiringLicenses.filter(l => l.expiration_date < todayVal);
+      } else {
+        const cutoff = daysFromNow(days);
+        filtered = expiringLicenses.filter(l => l.expiration_date >= todayVal && l.expiration_date <= cutoff);
+      }
+
+      const rows = filtered.map(l => {
+        const daysLeft = Math.ceil((new Date(l.expiration_date) - new Date()) / 86400000);
+        const urgency = daysLeft <= 30 ? 'text-red-600 font-medium' : 'text-amber-600';
+        return `
+          <tr class="border-b border-gray-100">
+            <td class="py-2 pr-3">
+              <a href="providers.html?id=${l.provider_id}" class="text-brand-blue hover:underline font-medium">
+                ${l.providers ? `${l.providers.first_name} ${l.providers.last_name}` : '—'}
+              </a>
+            </td>
+            <td class="py-2 pr-3">${l.state}</td>
+            <td class="py-2 pr-3 font-mono text-xs">${l.license_number || '—'}</td>
+            <td class="py-2 pr-3 ${urgency}">${formatDate(l.expiration_date)}</td>
+            <td class="py-2 ${urgency}">${daysLeft}d</td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('licenseModalContent').innerHTML = `
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-500 border-b">
+              <th class="pb-2 font-medium">Provider</th>
+              <th class="pb-2 font-medium">State</th>
+              <th class="pb-2 font-medium">License #</th>
+              <th class="pb-2 font-medium">Expiration</th>
+              <th class="pb-2 font-medium">Days</th>
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="5" class="py-4 text-gray-500 text-center">No expiring licenses</td></tr>'}</tbody>
+        </table>
+      `;
+
+      document.getElementById('licenseModal').classList.remove('hidden');
+    };
+
+    // ─── Coverage Matrix ─────────────────────────────────────────────
+    function renderMatrix() {
+      const today = todayStr();
+
+      // Determine payers to show
+      let payersToShow;
+      if (payerFilter) {
+        payersToShow = [payerFilter];
+      } else {
+        payersToShow = [...CANONICAL_PAYERS];
+      }
+
+      // Determine states to show
+      let statesToShow;
+      if (priorityOnly) {
+        statesToShow = [...PRIORITY_STATES].sort();
+      } else {
+        statesToShow = US_STATES.map(s => s.code).sort();
+      }
+
+      // Build group enrollment lookup
+      const groupMap = {};
+      groupEnrollments.forEach(g => { groupMap[`${g.payer}|${g.state}`] = g; });
+
+      // Build matrix data
+      let totalGaps = 0;
       const table = document.getElementById('coverageMatrix');
       const thead = table.querySelector('thead tr');
       const tbody = table.querySelector('tbody');
 
-      thead.innerHTML = '<th class="text-left py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50 sticky left-0">State</th>';
+      // Header
+      thead.innerHTML = '<th class="text-left py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50 sticky left-0 z-10">State</th>';
       payersToShow.forEach(payer => {
         thead.innerHTML += `<th class="text-center py-2 px-3 text-sm font-medium text-gray-500 bg-gray-50">${payer}</th>`;
       });
 
+      // Rows
       tbody.innerHTML = statesToShow.map(state => {
-        let row = `<tr><td class="py-2 px-3 text-sm font-medium text-gray-900 bg-white sticky left-0">${state}</td>`;
-        payersToShow.forEach(payer => {
-          const data = matrix?.[state]?.[payer] || {};
-          const routable = data.routable || 0;
-          const approvedPending = data.approved_pending || 0;
-          const inProgress = data.in_progress || 0;
-          let cellClass;
-          let cellContent;
+        let row = `<tr><td class="py-2 px-3 text-sm font-medium text-gray-900 bg-white sticky left-0 z-10">${state}</td>`;
 
-          if (routable > 0) {
-            cellClass = 'coverage-covered';
-            cellContent = routable;
-          } else if (approvedPending > 0) {
-            cellClass = 'coverage-pending';
-            cellContent = approvedPending;
-          } else if (inProgress > 0) {
-            cellClass = 'coverage-pipeline';
-            cellContent = `(${inProgress})`;
+        payersToShow.forEach(payer => {
+          const key = `${payer}|${state}`;
+          const group = groupMap[key];
+          let cellClass, cellContent;
+
+          if (matrixLayer === 'billable') {
+            // ── Billable Layer: ALL conditions for billing ──
+            // 1. Group NPI in network (group_enrollments.status = Approved)
+            // 2. Provider credentialed under personal NPI (credential Approved + effective <= today)
+            // 3. Provider Active
+            // 4. Licensed in state (providers.licensed_states includes state)
+            // 5. Linked to Vitality group (credential_linking.linked = true)
+            const groupApproved = group && group.status === 'Approved';
+            let billableCount = 0;
+            let almostCount = 0; // has some pieces but not all
+
+            credentials.forEach(c => {
+              if (c.state !== state || c.payer !== payer) return;
+              const credReady = c.status === 'Approved' && c.effective_date && c.effective_date <= today;
+              const provActive = c.providers && c.providers.status === 'Active';
+              const licensed = c.providers && Array.isArray(c.providers.licensed_states) && c.providers.licensed_states.includes(state);
+              const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
+              const isLinked = linking && linking.linked;
+
+              if (groupApproved && credReady && provActive && licensed && isLinked) {
+                billableCount++;
+              } else if (credReady && provActive && licensed) {
+                almostCount++; // credential ready but missing group/linking
+              } else if (groupApproved && c.status === 'Approved' && provActive && licensed) {
+                almostCount++; // group ok but effective date missing or future
+              } else if (c.status === 'In Progress' && c.providers && c.providers.status !== 'Blocked') {
+                almostCount++;
+              }
+            });
+
+            if (billableCount > 0) {
+              cellClass = 'coverage-covered';
+              cellContent = billableCount;
+            } else if (almostCount > 0) {
+              cellClass = 'coverage-pipeline';
+              cellContent = `(${almostCount})`;
+            } else if (!group) {
+              cellClass = 'bg-gray-100 text-gray-400';
+              cellContent = '—';
+            } else {
+              cellClass = 'coverage-gap';
+              cellContent = '0';
+              totalGaps++;
+            }
+
+          } else if (matrixLayer === 'group') {
+            // ── Group Enrollment Layer ──
+            if (!group) {
+              cellClass = 'bg-gray-100 text-gray-400';
+              cellContent = '—';
+            } else if (group.status === 'Approved') {
+              cellClass = 'coverage-covered';
+              cellContent = '✓';
+            } else if (['In Progress', 'On Hold', 'Not Started'].includes(group.status)) {
+              cellClass = 'coverage-pipeline';
+              cellContent = '...';
+            } else {
+              // Denied, Network Closed
+              cellClass = 'coverage-gap';
+              cellContent = '✗';
+            }
+
+          } else if (matrixLayer === 'linked') {
+            // ── Fully Linked Layer ──
+            // Green only when: group Approved + cred Approved + effective <= today + provider Active + linked = true
+            let fullyLinked = 0;
+            let partial = 0;
+
+            credentials.forEach(c => {
+              if (c.state !== state || c.payer !== payer) return;
+              if (c.status !== 'Approved' || !c.effective_date || c.effective_date > today) return;
+              if (!c.providers || c.providers.status !== 'Active') return;
+
+              const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
+              const isLinked = linking && linking.linked;
+              const groupApproved = group && group.status === 'Approved';
+
+              if (groupApproved && isLinked) {
+                fullyLinked++;
+              } else {
+                partial++;
+              }
+            });
+
+            if (fullyLinked > 0) {
+              cellClass = 'coverage-covered';
+              cellContent = fullyLinked;
+            } else if (partial > 0) {
+              cellClass = 'coverage-pipeline';
+              cellContent = `(${partial})`;
+            } else {
+              cellClass = 'coverage-gap';
+              cellContent = '0';
+              totalGaps++;
+            }
+
           } else {
-            cellClass = 'coverage-gap';
-            cellContent = '0';
+            // ── Individual Credentials Layer (default, existing behavior) ──
+            let routable = 0, pending = 0, inProg = 0;
+            const routableSet = new Set();
+            const pendingSet = new Set();
+            const inProgSet = new Set();
+
+            credentials.forEach(c => {
+              if (c.state !== state || c.payer !== payer) return;
+
+              if (c.status === 'Approved' && c.effective_date && c.effective_date <= today && c.providers && c.providers.status === 'Active') {
+                routableSet.add(c.provider_id);
+              } else if (c.status === 'Approved' && c.effective_date && c.effective_date > today && c.providers && c.providers.status === 'Active') {
+                pendingSet.add(c.provider_id);
+              } else if (c.status === 'In Progress' && c.providers && c.providers.status !== 'Blocked') {
+                inProgSet.add(c.provider_id);
+              }
+            });
+
+            routable = routableSet.size;
+            pending = pendingSet.size;
+            inProg = inProgSet.size;
+
+            if (routable > 0) {
+              cellClass = 'coverage-covered';
+              cellContent = routable;
+            } else if (pending > 0) {
+              cellClass = 'coverage-pending';
+              cellContent = pending;
+            } else if (inProg > 0) {
+              cellClass = 'coverage-pipeline';
+              cellContent = `(${inProg})`;
+            } else {
+              cellClass = 'coverage-gap';
+              cellContent = '0';
+              totalGaps++;
+            }
           }
 
-          row += `<td class="coverage-cell ${cellClass}">${cellContent}</td>`;
+          row += `<td class="coverage-cell ${cellClass} cursor-pointer hover:opacity-80 transition-opacity"
+                      onclick="window._openCellDetail('${escapeHtml(payer)}', '${state}')"
+                      title="${payer} — ${state}">${cellContent}</td>`;
         });
+
         row += '</tr>';
         return row;
       }).join('');
 
-      const footnoteContainer = document.getElementById('blockedFootnote');
-      if (blockedCount > 0) {
-        if (!footnoteContainer) {
-          const matrixContainer = table.parentElement;
-          const footnote = document.createElement('div');
-          footnote.id = 'blockedFootnote';
-          footnote.className = 'mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2';
+      document.getElementById('statGapsLabel').textContent = totalGaps > 0 ? `${totalGaps} gap${totalGaps !== 1 ? 's' : ''} identified` : '';
+
+      // Blocked providers footnote (credentials and billable layers)
+      const footnote = document.getElementById('blockedFootnote');
+      if (matrixLayer === 'credentials' || matrixLayer === 'billable') {
+        const blockedWithCreds = new Set();
+        credentials.forEach(c => {
+          if (c.status === 'Approved' && c.effective_date && c.effective_date <= today && c.providers && c.providers.status === 'Blocked') {
+            blockedWithCreds.add(c.provider_id);
+          }
+        });
+        const bc = blockedWithCreds.size;
+        if (bc > 0) {
           footnote.innerHTML = `
-            <i data-feather="alert-triangle" class="h-5 w-5 text-amber-600 flex-shrink-0"></i>
-            <p class="text-sm text-amber-800">
-              <strong>${blockedCount} provider${blockedCount !== 1 ? 's have' : ' has'} approved credentials but ${blockedCount !== 1 ? 'are' : 'is'} blocked</strong>
-              (not counted in green cells). Resolving blocks could increase coverage.
-            </p>
+            <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+              <i data-feather="alert-triangle" class="h-5 w-5 text-amber-600 flex-shrink-0"></i>
+              <p class="text-sm text-amber-800">
+                <strong>${bc} provider${bc !== 1 ? 's have' : ' has'} approved credentials but ${bc !== 1 ? 'are' : 'is'} blocked</strong>
+                (not counted in green cells).
+              </p>
+            </div>
           `;
-          matrixContainer.appendChild(footnote);
+          feather.replace({ width: 20, height: 20 });
         } else {
-          footnoteContainer.querySelector('p').innerHTML = `
-            <strong>${blockedCount} provider${blockedCount !== 1 ? 's have' : ' has'} approved credentials but ${blockedCount !== 1 ? 'are' : 'is'} blocked</strong>
-            (not counted in green cells). Resolving blocks could increase coverage.
-          `;
+          footnote.innerHTML = '';
         }
-      } else if (footnoteContainer) {
-        footnoteContainer.remove();
+      } else {
+        footnote.innerHTML = '';
       }
     }
 
-    async function loadRoutingActivity() {
-      const data = await apiRequest('/dashboard/activity?limit=50');
-      routingActivity = data.items || [];
+    // ─── Cell Detail Panel ───────────────────────────────────────────
+    window._openCellDetail = async (payer, state) => {
+      document.getElementById('cellDetailTitle').textContent = `${payer} — ${state}`;
+      document.getElementById('cellDetailContent').innerHTML = '<div class="flex justify-center py-8"><div class="loading-spinner"></div></div>';
+      document.getElementById('cellDetailPanel').classList.remove('hidden');
+      document.getElementById('cellDetailBackdrop').classList.remove('hidden');
+      feather.replace();
+
+      // Fetch detail data
+      const [groupRes, credsRes] = await Promise.all([
+        db.from('group_enrollments').select('*').eq('payer', payer).eq('state', state).maybeSingle(),
+        db.from('provider_credentials').select('*, providers!inner(id, first_name, last_name, status, licensed_states), credential_linking(linked, linked_date)').eq('payer', payer).eq('state', state)
+      ]);
+
+      const group = groupRes.data;
+      let cellCreds = credsRes.data || [];
+
+      // Fallback if !inner fails
+      if (credsRes.error) {
+        const fb = await db.from('provider_credentials').select('*, credential_linking(linked, linked_date)').eq('payer', payer).eq('state', state);
+        cellCreds = (fb.data || []).map(c => {
+          const p = providers.find(p => p.id === c.provider_id);
+          return { ...c, providers: p || null };
+        });
+      }
+
+      const today = todayStr();
+      const isGroupBlocked = group && ['Denied', 'Network Closed'].includes(group.status);
+
+      let html = '';
+
+      // ── Group Enrollment Section ──
+      html += '<div class="mb-6">';
+      html += '<h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Group Enrollment</h4>';
+
+      if (group) {
+        const statusMap = {
+          'Approved': 'badge-active',
+          'In Progress': 'badge-in-progress',
+          'On Hold': 'bg-gray-100 text-gray-600',
+          'Denied': 'badge-blocked',
+          'Network Closed': 'badge-blocked',
+          'Not Started': 'bg-gray-100 text-gray-500'
+        };
+        const badgeClass = statusMap[group.status] || 'bg-gray-100 text-gray-500';
+
+        html += `
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="badge ${badgeClass}">${group.status}</span>
+              ${group.priority ? `<span class="text-xs text-gray-500">Priority: ${group.priority}</span>` : ''}
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div><span class="text-gray-500">Effective:</span> <span class="text-gray-900">${formatDate(group.effective_date)}</span></div>
+              <div><span class="text-gray-500">Re-cred:</span> <span class="text-gray-900">${formatDate(group.recredentialing_date)}</span></div>
+              <div><span class="text-gray-500">Owner:</span> <span class="text-gray-900">${escapeHtml(group.owner) || '—'}</span></div>
+              <div><span class="text-gray-500">Ref #:</span> <span class="font-mono text-gray-900">${escapeHtml(group.reference_number) || '—'}</span></div>
+            </div>
+            ${group.notes ? `<p class="text-sm text-gray-600 mt-1">${escapeHtml(group.notes)}</p>` : ''}
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+            <span class="text-sm text-amber-800">No group enrollment for this combination.</span>
+            <a href="credentials.html" class="text-sm text-brand-blue hover:underline font-medium">Create one</a>
+          </div>
+        `;
+      }
+      html += '</div>';
+
+      // ── Warning if group blocked ──
+      if (isGroupBlocked) {
+        html += `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-6 flex items-start gap-2">
+            <i data-feather="alert-triangle" class="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5"></i>
+            <p class="text-sm text-red-800">Group enrollment is <strong>${group.status}</strong>. Individual credentials cannot be billed until this is resolved.</p>
+          </div>
+        `;
+      }
+
+      // ── Individual Credentials ──
+      html += '<div class="mb-6">';
+      html += '<h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Individual Credentials</h4>';
+
+      if (cellCreds.length === 0) {
+        html += '<p class="text-sm text-gray-500">No individual credentials for this combination.</p>';
+      } else {
+        html += `
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-500 border-b">
+                <th class="pb-2 font-medium">Provider</th>
+                <th class="pb-2 font-medium">Status</th>
+                <th class="pb-2 font-medium">Effective</th>
+                <th class="pb-2 font-medium">Linked</th>
+                <th class="pb-2 font-medium">Ref #</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        cellCreds.forEach(c => {
+          const provName = c.providers ? `${c.providers.first_name} ${c.providers.last_name}` : 'Unknown';
+          const provId = c.providers ? c.providers.id : '';
+          const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
+          const isLinked = linking && linking.linked;
+
+          let statusBadge;
+          if (c.status === 'Approved' && c.effective_date && c.effective_date <= today) {
+            statusBadge = '<span class="badge badge-active">Routable</span>';
+          } else if (c.status === 'Approved') {
+            statusBadge = '<span class="badge bg-blue-100 text-blue-800">Approved</span>';
+          } else if (c.status === 'In Progress') {
+            statusBadge = '<span class="badge badge-in-progress">In Progress</span>';
+          } else if (c.status === 'Denied') {
+            statusBadge = '<span class="badge badge-blocked">Denied</span>';
+          } else {
+            statusBadge = `<span class="badge bg-gray-100 text-gray-600">${c.status}</span>`;
+          }
+
+          const rowOpacity = isGroupBlocked ? 'opacity-50' : '';
+
+          html += `
+            <tr class="border-b border-gray-100 ${rowOpacity}">
+              <td class="py-2 pr-2">
+                <a href="providers.html?id=${provId}" class="text-brand-blue hover:underline font-medium">${escapeHtml(provName)}</a>
+              </td>
+              <td class="py-2 pr-2">${statusBadge}</td>
+              <td class="py-2 pr-2 text-xs text-gray-500">${formatDate(c.effective_date)}</td>
+              <td class="py-2 pr-2">
+                ${isLinked ? '<span class="text-green-600 font-medium">Yes</span>' : '<span class="text-amber-600">No</span>'}
+              </td>
+              <td class="py-2 font-mono text-xs text-gray-500">${escapeHtml(c.reference_number) || '—'}</td>
+            </tr>
+          `;
+        });
+
+        html += '</tbody></table>';
+      }
+      html += '</div>';
+
+      // ── Routing Status ──
+      // Match criteria to active matrix layer
+      const routableProviders = cellCreds.filter(c => {
+        if (c.status !== 'Approved' || !c.effective_date || c.effective_date > today) return false;
+        if (!c.providers || c.providers.status !== 'Active') return false;
+        if (matrixLayer === 'billable') {
+          const licensed = Array.isArray(c.providers.licensed_states) && c.providers.licensed_states.includes(state);
+          const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
+          const isLinked = linking && linking.linked;
+          return group && group.status === 'Approved' && licensed && isLinked;
+        }
+        if (matrixLayer === 'linked') {
+          const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
+          return linking && linking.linked && group && group.status === 'Approved';
+        }
+        // For 'credentials' and 'group' layers, match the Finder/API criteria:
+        // Approved + effective + Active provider (no linking/group check)
+        return true;
+      });
+
+      const layerLabels = { billable: 'Billable', linked: 'Fully Linked', group: 'Group Enrollment', credentials: 'Individual Credentials' };
+      const layerLabel = layerLabels[matrixLayer] || 'Individual Credentials';
+
+      html += '<div>';
+      html += `<h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Routing Status <span class="text-xs font-normal">(${layerLabel} layer)</span></h4>`;
+
+      if (routableProviders.length > 0) {
+        html += `
+          <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+            <p class="text-sm text-green-800 font-medium">${routableProviders.length} provider${routableProviders.length !== 1 ? 's' : ''} can bill today</p>
+            <div class="flex flex-wrap gap-2 mt-2">
+              ${routableProviders.map(c => `<a href="providers.html?id=${c.providers.id}" class="badge badge-active hover:opacity-80">${escapeHtml(c.providers.first_name)} ${escapeHtml(c.providers.last_name)}</a>`).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        let reason = 'No routable providers for this combination.';
+        if (!group) reason = 'No group enrollment exists.';
+        else if (isGroupBlocked) reason = `Group enrollment is ${escapeHtml(group.status)}.`;
+        else if (cellCreds.length === 0) reason = 'No individual credentials exist.';
+        if (matrixLayer === 'billable') reason += ' (Billable = group in network + provider credentialed + licensed in state + linked to group.)';
+        if (matrixLayer === 'linked') reason += ' (Fully Linked layer requires group approval + credential linking.)';
+
+        html += `<p class="text-sm text-gray-500">${reason}</p>`;
+      }
+      html += '</div>';
+
+      document.getElementById('cellDetailContent').innerHTML = html;
+      feather.replace({ width: 16, height: 16 });
+    };
+
+    function closeCellDetail() {
+      document.getElementById('cellDetailPanel').classList.add('hidden');
+      document.getElementById('cellDetailBackdrop').classList.add('hidden');
     }
 
-    async function loadUnmatchedSearches() {
-      const data = await apiRequest('/dashboard/unmatched?limit=10');
-      unmatchedItems = data.items || [];
-    }
-
-    // Render recent activity
+    // ─── Routing Activity & Unmatched (unchanged logic) ──────────────
     function renderRecentActivity() {
       const tbody = document.getElementById('routingActivity');
 
-      if (routingActivity.length === 0) {
+      if (routingLogs.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No routing activity yet</td></tr>';
         return;
       }
 
-      tbody.innerHTML = routingActivity.map(log => {
+      tbody.innerHTML = routingLogs.map(log => {
+        const providerName = log.providers ? `${log.providers.first_name} ${log.providers.last_name}` : '—';
         return `
           <tr class="border-b border-gray-100">
-            <td class="py-2 text-gray-500">${formatDate(log.created_at)}</td>
+            <td class="py-2 text-gray-500">${formatDateRelative(log.created_at)}</td>
             <td class="py-2">${log.patient_state}</td>
             <td class="py-2">${log.patient_payer === '*' ? 'All' : log.patient_payer}</td>
             <td class="py-2">
@@ -370,10 +1045,16 @@
       }).join('');
     }
 
-    // Render top unmatched searches
     function renderUnmatchedSearches() {
-      const sorted = [...unmatchedItems].sort((a, b) => b.count - a.count);
+      const unmatchedLogs = routingLogs.filter(l => !l.matched);
+      const grouped = {};
+      unmatchedLogs.forEach(log => {
+        const key = `${log.patient_state}|${log.patient_payer}`;
+        if (!grouped[key]) grouped[key] = { state: log.patient_state, payer: log.patient_payer, count: 0 };
+        grouped[key].count++;
+      });
 
+      const sorted = Object.values(grouped).sort((a, b) => b.count - a.count).slice(0, 10);
       const container = document.getElementById('unmatchedSearches');
 
       if (sorted.length === 0) {
@@ -384,7 +1065,6 @@
       container.innerHTML = sorted.map((item, index) => {
         const payerDisplay = item.payer === '*' ? 'All Payers' : item.payer;
         const barWidth = (item.count / sorted[0].count) * 100;
-
         return `
           <div class="flex items-center gap-3">
             <span class="text-sm text-gray-500 w-6">${index + 1}.</span>
@@ -402,31 +1082,70 @@
       }).join('');
     }
 
-    // Initialize
+    // ─── Initialization ──────────────────────────────────────────────
     async function init() {
       try {
         currentUser = await requireAuth();
+        db = await getDataClient();
+
         document.getElementById('userEmail').textContent = currentUser.email;
         wireLogoutButton();
 
         // Load data
-        const priorityOnly = document.getElementById('priorityStatesToggle').checked;
-        await Promise.all([
-          loadCoverage(priorityOnly),
-          loadRoutingActivity(),
-          loadUnmatchedSearches(),
-        ]);
+        await loadAllData();
 
-        // Render
-        buildCoverageMatrix();
+        // Render everything
+        renderCards();
+        renderMatrix();
         renderRecentActivity();
         renderUnmatchedSearches();
 
-        // Priority states toggle
-        document.getElementById('priorityStatesToggle').addEventListener('change', async (e) => {
-          await loadCoverage(e.target.checked);
-          buildCoverageMatrix();
+        // ── Layer selector ──
+        document.querySelectorAll('.layer-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            matrixLayer = btn.dataset.layer;
+            document.querySelectorAll('.layer-btn').forEach(b => {
+              b.classList.remove('bg-brand-blue', 'text-white');
+              b.classList.add('bg-white', 'text-gray-600');
+            });
+            btn.classList.remove('bg-white', 'text-gray-600');
+            btn.classList.add('bg-brand-blue', 'text-white');
+            renderMatrix();
+            feather.replace();
+          });
+        });
+
+        // ── Payer filter ──
+        const payerSelect = document.getElementById('payerFilter');
+        CANONICAL_PAYERS.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p;
+          opt.textContent = p;
+          payerSelect.appendChild(opt);
+        });
+        payerSelect.addEventListener('change', (e) => {
+          payerFilter = e.target.value;
+          renderMatrix();
           feather.replace();
+        });
+
+        // ── Priority states toggle ──
+        document.getElementById('priorityStatesToggle').addEventListener('change', (e) => {
+          priorityOnly = e.target.checked;
+          renderMatrix();
+          feather.replace();
+        });
+
+        // ── Cell detail panel ──
+        document.getElementById('closeCellDetail').addEventListener('click', closeCellDetail);
+        document.getElementById('cellDetailBackdrop').addEventListener('click', closeCellDetail);
+
+        // ── License modal ──
+        document.getElementById('closeLicenseModal').addEventListener('click', () => {
+          document.getElementById('licenseModal').classList.add('hidden');
+        });
+        document.getElementById('licenseModal').addEventListener('click', (e) => {
+          if (e.target.id === 'licenseModal') document.getElementById('licenseModal').classList.add('hidden');
         });
 
         feather.replace();
