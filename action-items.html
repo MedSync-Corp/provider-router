@@ -13,18 +13,23 @@
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['IBM Plex Sans', 'sans-serif'] },
-          colors: { brand: { purple: '#7030a0', blue: '#3656b8', cyan: '#01a7cb' } }
+          fontFamily: {
+            sans: ['IBM Plex Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#7030a0',
+              blue: '#3656b8',
+              cyan: '#01a7cb',
+            }
+          }
         }
       }
-    }
+    };
   </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
-  <div id="toast-container"></div>
-
-  <!-- Navigation -->
   <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
@@ -34,645 +39,57 @@
         </div>
         <div class="flex items-center gap-6">
           <a href="index.html" class="text-gray-600 hover:text-gray-900">Finder</a>
-          <a href="providers.html" class="text-gray-600 hover:text-gray-900">Providers</a>
-          <a href="credentials.html" class="text-gray-600 hover:text-gray-900">Credentials</a>
+          <a href="roster.html" class="text-gray-600 hover:text-gray-900">Roster</a>
           <a href="dashboard.html" class="text-gray-600 hover:text-gray-900">Dashboard</a>
-          <a href="action-items.html" class="text-brand-blue font-medium border-b-2 border-brand-blue pb-1">Action Items</a>
-          <a href="pipeline.html" class="text-gray-600 hover:text-gray-900">Pipeline</a>
-          <a href="settings.html" class="text-gray-600 hover:text-gray-900">Settings</a>
         </div>
         <div class="flex items-center gap-4">
           <span id="userEmail" class="text-sm text-gray-600"></span>
           <button id="logoutBtn" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
-            <i data-feather="log-out" class="h-4 w-4"></i> Sign Out
+            <i data-feather="log-out" class="h-4 w-4"></i>
+            Sign Out
           </button>
         </div>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Stats -->
-    <div class="grid grid-cols-3 md:grid-cols-6 gap-4 mb-6">
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Critical</div>
-        <div class="text-2xl font-bold text-red-600" id="statCritical">0</div>
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <section class="bg-white rounded-lg shadow p-8">
+      <div class="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-sm font-medium mb-5">
+        <i data-feather="alert-triangle" class="h-4 w-4"></i>
+        API Migration
       </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">High</div>
-        <div class="text-2xl font-bold text-orange-500" id="statHigh">0</div>
+      <h1 class="text-2xl font-bold text-gray-900">Action Items is not available yet</h1>
+      <p class="text-gray-600 mt-3">
+        The production API does not expose Action Items endpoints yet. Keep users on Finder, Roster, and Dashboard
+        until that backend slice is migrated off Supabase.
+      </p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a href="dashboard.html" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-lg font-medium hover:bg-blue-700 transition">
+          <i data-feather="bar-chart-2" class="h-4 w-4"></i>
+          Open Dashboard
+        </a>
+        <a href="roster.html" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition">
+          <i data-feather="users" class="h-4 w-4"></i>
+          Open Roster
+        </a>
       </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Medium</div>
-        <div class="text-2xl font-bold text-yellow-600" id="statMedium">0</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Low</div>
-        <div class="text-2xl font-bold text-gray-500" id="statLow">0</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Overdue</div>
-        <div class="text-2xl font-bold text-red-600" id="statOverdue">0</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Total Open</div>
-        <div class="text-2xl font-bold text-gray-900" id="statOpen">0</div>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="text-sm text-gray-600 font-medium">Priority:</span>
-        <div class="flex flex-wrap gap-1">
-          <button data-priority="" class="pri-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-brand-blue text-white">All</button>
-          <button data-priority="Critical" class="pri-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Critical</button>
-          <button data-priority="High" class="pri-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">High</button>
-          <button data-priority="Medium" class="pri-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Medium</button>
-          <button data-priority="Low" class="pri-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Low</button>
-        </div>
-
-        <span class="text-sm text-gray-600 font-medium ml-2">Type:</span>
-        <select id="filterType" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
-          <option value="">All</option>
-          <option value="auto">Auto-Generated</option>
-          <option value="manual">Manual</option>
-        </select>
-
-        <select id="filterCategory" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm">
-          <option value="">All Categories</option>
-          <option value="Licenses">Licenses</option>
-          <option value="Credentials">Credentials</option>
-          <option value="Group Enrollments">Group Enrollments</option>
-          <option value="Onboarding">Onboarding</option>
-          <option value="Re-Credentialing">Re-Credentialing</option>
-          <option value="Pipeline">Pipeline</option>
-          <option value="Manual">Manual</option>
-        </select>
-
-        <label class="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50">
-          <input type="checkbox" id="filterOverdue" class="w-4 h-4 text-brand-blue rounded focus:ring-brand-blue">
-          <span>Overdue only</span>
-        </label>
-
-        <div class="flex-1"></div>
-
-        <button id="addManualBtn" class="px-4 py-1.5 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-1">
-          <i data-feather="plus" class="h-4 w-4"></i> Add Action Item
-        </button>
-      </div>
-    </div>
-
-    <!-- Action Items List -->
-    <div id="actionItemsList" class="space-y-3">
-      <div class="text-center py-12 text-gray-500">
-        <div class="loading-spinner mx-auto mb-2"></div>
-        Loading action items...
-      </div>
-    </div>
+    </section>
   </main>
-
-  <!-- Add Manual Action Item Modal -->
-  <div id="addModal" class="modal-backdrop hidden">
-    <div class="modal-content w-full max-w-lg p-6 m-4">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-xl font-semibold text-gray-900">Add Action Item</h3>
-        <button id="closeAddModal" class="text-gray-400 hover:text-gray-600">
-          <i data-feather="x" class="h-6 w-6"></i>
-        </button>
-      </div>
-      <form id="addForm" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-          <input type="text" id="ai-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea id="ai-desc" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none resize-none"></textarea>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-            <select id="ai-priority" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
-              <option value="Medium">Medium</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-            <input type="date" id="ai-due" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
-          <input type="text" id="ai-assigned" placeholder="email@example.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
-        </div>
-        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <button type="button" id="cancelAdd" class="px-4 py-2 text-gray-600 hover:text-gray-900">Cancel</button>
-          <button type="submit" class="px-4 py-2 bg-brand-blue text-white rounded-lg font-medium hover:bg-blue-700 transition">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <script type="module">
     import { requireAuth, wireLogoutButton } from './auth.js';
-    import { getSupabase } from './supabaseClient.js';
 
-    const PRIORITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 };
-    const PRIORITY_STYLES = {
-      Critical: { border: 'border-l-red-600', bg: 'bg-red-50', badge: 'bg-red-100 text-red-800' },
-      High:     { border: 'border-l-orange-500', bg: 'bg-orange-50', badge: 'bg-orange-100 text-orange-800' },
-      Medium:   { border: 'border-l-yellow-400', bg: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-800' },
-      Low:      { border: 'border-l-gray-300', bg: 'bg-gray-50', badge: 'bg-gray-100 text-gray-600' }
-    };
-    const CATEGORY_ICONS = {
-      Licenses: 'file-text', Credentials: 'shield', 'Group Enrollments': 'layers',
-      Onboarding: 'clipboard', 'Re-Credentialing': 'refresh-cw', Pipeline: 'user-plus', Manual: 'edit-3'
-    };
-
-    let currentUser = null;
-    let supabase = null;
-    let allItems = [];
-    let filteredItems = [];
-    let activePriority = '';
-    let dismissed = {};
-
-    // ─── Utilities ───────────────────────────────────────────────────
-    function showToast(msg, type = 'success') {
-      const c = document.getElementById('toast-container');
-      const t = document.createElement('div');
-      t.className = `toast toast-${type}`;
-      t.innerHTML = `<i data-feather="${type==='success'?'check-circle':'alert-circle'}" class="h-4 w-4"></i><span>${msg}</span>`;
-      c.appendChild(t);
-      feather.replace({ width: 16, height: 16 });
-      setTimeout(() => { t.style.animation = 'slideOut 0.3s ease-out forwards'; setTimeout(() => t.remove(), 300); }, 3000);
-    }
-
-    function todayStr() { return new Date().toLocaleDateString('sv'); }
-    function daysFromNow(n) { return new Date(Date.now() + n * 86400000).toLocaleDateString('sv'); }
-    function daysBetween(a, b) { return Math.ceil((new Date(a) - new Date(b)) / 86400000); }
-
-    function formatDate(d) {
-      if (!d) return '—';
-      const s = String(d);
-      if (s.length === 10 && s[4] === '-') {
-        const [y, m, day] = s.split('-');
-        return new Date(y, m - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      }
-      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
-    function escapeHtml(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
-
-    function loadDismissed() {
-      try {
-        const raw = localStorage.getItem('dismissed_actions');
-        if (!raw) return {};
-        const d = JSON.parse(raw);
-        const now = Date.now();
-        const clean = {};
-        for (const [k, v] of Object.entries(d)) {
-          if (now - v < 24 * 60 * 60 * 1000) clean[k] = v;
-        }
-        localStorage.setItem('dismissed_actions', JSON.stringify(clean));
-        return clean;
-      } catch { return {}; }
-    }
-
-    function dismissItem(id) {
-      dismissed[id] = Date.now();
-      localStorage.setItem('dismissed_actions', JSON.stringify(dismissed));
-      applyFilters();
-    }
-
-    // ─── Data Loading & Rule Engine ──────────────────────────────────
-    async function loadAllData() {
-      const today = todayStr();
-      const thirty = daysFromNow(30);
-      const ninety = daysFromNow(90);
-      const thirtyAgo = daysFromNow(-30);
-
-      dismissed = loadDismissed();
-
-      const [providersRes, licensesRes, credsRes, groupsRes, tasksRes, pipelineRes, manualRes] = await Promise.all([
-        supabase.from('providers').select('id, first_name, last_name, status'),
-        supabase.from('provider_licenses').select('id, provider_id, state, license_type, license_number, expiration_date, providers!inner(first_name, last_name, status)'),
-        supabase.from('provider_credentials').select('id, provider_id, state, payer, status, effective_date, follow_up_date, providers!inner(id, first_name, last_name, status), credential_linking(linked)'),
-        supabase.from('group_enrollments').select('id, payer, state, status, follow_up_date, recredentialing_date'),
-        supabase.from('onboarding_tasks').select('id, provider_id, task_name, category, blocks_activation, completed, providers!inner(id, first_name, last_name, status)'),
-        supabase.from('provider_pipeline').select('id, first_name, last_name, stage, last_contact_date'),
-        supabase.from('action_items').select('*').in('status', ['Open', 'In Progress']).order('created_at', { ascending: false })
-      ]);
-
-      // Check for critical query errors
-      const queryErrors = [];
-      if (providersRes.error) queryErrors.push('providers');
-      if (licensesRes.error) queryErrors.push('licenses');
-      if (credsRes.error) queryErrors.push('credentials');
-      if (groupsRes.error) queryErrors.push('group enrollments');
-      if (tasksRes.error) queryErrors.push('onboarding tasks');
-      if (pipelineRes.error) queryErrors.push('pipeline');
-      if (manualRes.error) queryErrors.push('action items');
-
-      if (queryErrors.length > 0) {
-        const container = document.getElementById('actionItemsList');
-        container.innerHTML = `
-          <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-            <p class="font-medium">Error loading data from: ${queryErrors.join(', ')}</p>
-            <p class="text-sm mt-1">Some action items may not be shown. Please refresh the page.</p>
-          </div>
-        `;
-        console.error('Query errors:', { providersRes, licensesRes, credsRes, groupsRes, tasksRes, pipelineRes, manualRes });
-      }
-
-      const providers = providersRes.data || [];
-      const licenses = licensesRes.data || [];
-      const creds = credsRes.data || [];
-      const groups = groupsRes.data || [];
-      const tasks = tasksRes.data || [];
-      const pipeline = pipelineRes.data || [];
-      const manualItems = manualRes.data || [];
-
-      const autoItems = [];
-
-      // ── Rule 1: License Expirations ──
-      licenses.forEach(l => {
-        if (!l.expiration_date || !l.providers) return;
-        const pStatus = l.providers.status;
-        if (pStatus === 'On Hold' || pStatus === 'Inactive') return;
-        const name = `${l.providers.first_name} ${l.providers.last_name}`;
-        const days = daysBetween(l.expiration_date, today);
-
-        if (days < 0) {
-          autoItems.push({ id: `auto-lic-exp-${l.id}`, type: 'auto', category: 'Licenses', priority: 'Critical',
-            title: `${name} — ${l.state} license EXPIRED ${formatDate(l.expiration_date)}`,
-            description: `${l.license_type || ''} #${l.license_number || '—'} has expired. Provider may lose routability.`,
-            dueDate: l.expiration_date, link: `providers.html?id=${l.provider_id}` });
-        } else if (days <= 30) {
-          autoItems.push({ id: `auto-lic-30-${l.id}`, type: 'auto', category: 'Licenses', priority: 'High',
-            title: `${name} — ${l.state} license expires ${formatDate(l.expiration_date)}`,
-            description: `${days} days remaining. ${l.license_type || ''} #${l.license_number || '—'}.`,
-            dueDate: l.expiration_date, link: `providers.html?id=${l.provider_id}` });
-        } else if (days <= 90) {
-          autoItems.push({ id: `auto-lic-90-${l.id}`, type: 'auto', category: 'Licenses', priority: 'Medium',
-            title: `${name} — ${l.state} license expires ${formatDate(l.expiration_date)}`,
-            description: `${days} days remaining. ${l.license_type || ''} #${l.license_number || '—'}.`,
-            dueDate: l.expiration_date, link: `providers.html?id=${l.provider_id}` });
-        }
-      });
-
-      // ── Rule 2: Credential Follow-Ups Overdue ──
-      creds.forEach(c => {
-        if (!c.follow_up_date || c.follow_up_date >= today) return;
-        if (!['In Progress', 'On Hold'].includes(c.status)) return;
-        if (!c.providers) return;
-        const name = `${c.providers.first_name} ${c.providers.last_name}`;
-        autoItems.push({ id: `auto-cred-fu-${c.id}`, type: 'auto', category: 'Credentials', priority: 'High',
-          title: `${name} — ${c.payer} ${c.state} follow-up overdue`,
-          description: `Follow-up was due ${formatDate(c.follow_up_date)}. Status: ${c.status}.`,
-          dueDate: c.follow_up_date, link: 'credentials.html' });
-      });
-
-      // ── Rule 3: Group Enrollment Follow-Ups Overdue ──
-      groups.forEach(g => {
-        if (!g.follow_up_date || g.follow_up_date >= today) return;
-        if (!['In Progress', 'On Hold', 'Not Started'].includes(g.status)) return;
-        autoItems.push({ id: `auto-grp-fu-${g.id}`, type: 'auto', category: 'Group Enrollments', priority: 'High',
-          title: `${g.payer} — ${g.state} group enrollment follow-up overdue`,
-          description: `Follow-up was due ${formatDate(g.follow_up_date)}. Status: ${g.status}.`,
-          dueDate: g.follow_up_date, link: 'credentials.html' });
-      });
-
-      // ── Rule 4: Approved Credentials Not Linked ──
-      creds.forEach(c => {
-        if (c.status !== 'Approved' || !c.effective_date || c.effective_date > today) return;
-        if (!c.providers || c.providers.status !== 'Active') return;
-        const linking = Array.isArray(c.credential_linking) ? c.credential_linking[0] : c.credential_linking;
-        if (linking && linking.linked) return;
-        const name = `${c.providers.first_name} ${c.providers.last_name}`;
-        autoItems.push({ id: `auto-unlinked-${c.id}`, type: 'auto', category: 'Credentials', priority: 'Medium',
-          title: `${name} — ${c.payer} ${c.state} approved but not linked`,
-          description: 'Credential is approved and effective but not confirmed linked in payer system. Claims may be denied.',
-          dueDate: null, link: 'credentials.html' });
-      });
-
-      // ── Rule 5: Onboarding Blockers ──
-      tasks.forEach(t => {
-        if (!t.blocks_activation || t.completed) return;
-        if (!t.providers) return;
-        if (!['In Progress', 'Blocked'].includes(t.providers.status)) return;
-        const name = `${t.providers.first_name} ${t.providers.last_name}`;
-        autoItems.push({ id: `auto-onboard-${t.id}`, type: 'auto', category: 'Onboarding', priority: 'Medium',
-          title: `${name} — Missing: ${t.task_name}`,
-          description: 'This task blocks provider activation.',
-          dueDate: null, link: `providers.html?id=${t.provider_id}` });
-      });
-
-      // ── Rule 6: Provider Ready to Activate ──
-      const providerTaskMap = {};
-      tasks.forEach(t => {
-        if (!t.providers) return;
-        const pid = t.provider_id;
-        if (!providerTaskMap[pid]) providerTaskMap[pid] = { provider: t.providers, blocking: [], blockingDone: true };
-        if (t.blocks_activation) {
-          providerTaskMap[pid].blocking.push(t);
-          if (!t.completed) providerTaskMap[pid].blockingDone = false;
-        }
-      });
-      for (const [pid, data] of Object.entries(providerTaskMap)) {
-        if (data.blockingDone && data.blocking.length > 0 && ['In Progress', 'Blocked'].includes(data.provider.status)) {
-          const name = `${data.provider.first_name} ${data.provider.last_name}`;
-          autoItems.push({ id: `auto-activate-${pid}`, type: 'auto', category: 'Onboarding', priority: 'Medium',
-            title: `${name} — Ready to activate`,
-            description: 'All required onboarding tasks complete. Provider can be set to Active.',
-            dueDate: null, link: `providers.html?id=${pid}` });
-        }
-      }
-
-      // ── Rule 7: Group Approved, No Individual Credentials ──
-      const credPayerStates = new Set(creds.map(c => `${c.payer}|${c.state}`));
-      groups.forEach(g => {
-        if (g.status !== 'Approved') return;
-        if (credPayerStates.has(`${g.payer}|${g.state}`)) return;
-        autoItems.push({ id: `auto-grp-nocreds-${g.id}`, type: 'auto', category: 'Group Enrollments', priority: 'Low',
-          title: `${g.payer} — ${g.state} group approved but no providers credentialed`,
-          description: 'Vitality is enrolled but no individual NPs have been credentialed yet.',
-          dueDate: null, link: 'credentials.html' });
-      });
-
-      // ── Rule 8: Re-Credentialing Due ──
-      groups.forEach(g => {
-        if (!g.recredentialing_date) return;
-        const days = daysBetween(g.recredentialing_date, today);
-        if (days > 90) return;
-
-        let pri, desc;
-        if (days < 0) {
-          pri = 'Critical';
-          desc = `Re-credentialing is ${Math.abs(days)} days overdue.`;
-        } else if (days <= 30) {
-          pri = 'High';
-          desc = `${days} days remaining.`;
-        } else {
-          pri = 'Medium';
-          desc = `${days} days remaining.`;
-        }
-
-        autoItems.push({ id: `auto-recred-${g.id}`, type: 'auto', category: 'Re-Credentialing', priority: pri,
-          title: `${g.payer} — ${g.state} group re-credentialing ${days < 0 ? 'OVERDUE' : 'due'} ${formatDate(g.recredentialing_date)}`,
-          description: desc,
-          dueDate: g.recredentialing_date, link: 'credentials.html' });
-      });
-
-      // ── Rule 9: Stale Pipeline Prospects ──
-      pipeline.forEach(p => {
-        if (!['Prospect', 'Contacted'].includes(p.stage)) return;
-        if (p.last_contact_date && p.last_contact_date >= thirtyAgo) return;
-        autoItems.push({ id: `auto-stale-${p.id}`, type: 'auto', category: 'Pipeline', priority: 'Low',
-          title: `${p.first_name} ${p.last_name} — No contact in 30+ days`,
-          description: `Stage: ${p.stage}. Last contact: ${p.last_contact_date ? formatDate(p.last_contact_date) : 'Never'}.`,
-          dueDate: null, link: 'pipeline.html' });
-      });
-
-      // ── Merge auto + manual ──
-      const manualMapped = manualItems.map(m => ({
-        id: m.id, type: 'manual', category: 'Manual', priority: m.priority,
-        title: m.title, description: m.description, dueDate: m.due_date,
-        link: null, assignedTo: m.assigned_to, status: m.status,
-        createdBy: m.created_by, createdAt: m.created_at,
-        dbRecord: m
-      }));
-
-      // Filter out dismissed auto items
-      const visibleAuto = autoItems.filter(i => !dismissed[i.id]);
-
-      allItems = [...visibleAuto, ...manualMapped];
-      applyFilters();
-    }
-
-    // ─── Filtering & Sorting ─────────────────────────────────────────
-    function applyFilters() {
-      const typeFilter = document.getElementById('filterType').value;
-      const catFilter = document.getElementById('filterCategory').value;
-      const overdueOnly = document.getElementById('filterOverdue').checked;
-      const today = todayStr();
-
-      // Re-filter dismissed
-      const visibleAll = allItems.filter(i => i.type !== 'auto' || !dismissed[i.id]);
-
-      filteredItems = visibleAll.filter(i => {
-        if (activePriority && i.priority !== activePriority) return false;
-        if (typeFilter && i.type !== typeFilter) return false;
-        if (catFilter && i.category !== catFilter) return false;
-        if (overdueOnly) {
-          if (!i.dueDate || i.dueDate >= today) return false;
-        }
-        return true;
-      });
-
-      // Sort: overdue first, then by priority, then by due date
-      filteredItems.sort((a, b) => {
-        const aOverdue = a.dueDate && a.dueDate < today ? 1 : 0;
-        const bOverdue = b.dueDate && b.dueDate < today ? 1 : 0;
-        if (bOverdue !== aOverdue) return bOverdue - aOverdue;
-        const aPri = PRIORITY_ORDER[a.priority] ?? 9;
-        const bPri = PRIORITY_ORDER[b.priority] ?? 9;
-        if (aPri !== bPri) return aPri - bPri;
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-        if (a.dueDate) return -1;
-        if (b.dueDate) return 1;
-        return 0;
-      });
-
-      updateStats();
-      renderList();
-    }
-
-    function updateStats() {
-      const today = todayStr();
-      const visible = allItems.filter(i => i.type !== 'auto' || !dismissed[i.id]);
-      const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-      let overdue = 0;
-      visible.forEach(i => {
-        if (counts[i.priority] !== undefined) counts[i.priority]++;
-        if (i.dueDate && i.dueDate < today) overdue++;
-      });
-      document.getElementById('statCritical').textContent = counts.Critical;
-      document.getElementById('statHigh').textContent = counts.High;
-      document.getElementById('statMedium').textContent = counts.Medium;
-      document.getElementById('statLow').textContent = counts.Low;
-      document.getElementById('statOverdue').textContent = overdue;
-      document.getElementById('statOpen').textContent = visible.length;
-    }
-
-    // ─── Rendering ───────────────────────────────────────────────────
-    function renderList() {
-      const container = document.getElementById('actionItemsList');
-      const today = todayStr();
-
-      if (filteredItems.length === 0) {
-        container.innerHTML = '<div class="text-center py-12 text-gray-500">No action items match your filters</div>';
-        return;
-      }
-
-      container.innerHTML = filteredItems.map(item => {
-        const style = PRIORITY_STYLES[item.priority] || PRIORITY_STYLES.Medium;
-        const icon = CATEGORY_ICONS[item.category] || 'circle';
-        const isOverdue = item.dueDate && item.dueDate < today;
-        const isManual = item.type === 'manual';
-
-        let dueDateHtml = '';
-        if (item.dueDate) {
-          const cls = isOverdue ? 'text-red-600 font-medium' : 'text-gray-500';
-          dueDateHtml = `<span class="${cls}">${isOverdue ? 'Overdue: ' : 'Due: '}${formatDate(item.dueDate)}</span>`;
-        }
-
-        let actionsHtml = '';
-        if (isManual) {
-          actionsHtml = `
-            <select onchange="window._updateManualStatus('${item.id}', this.value)" class="px-2 py-1 border border-gray-300 rounded text-xs">
-              <option value="Open" ${item.status === 'Open' ? 'selected' : ''}>Open</option>
-              <option value="In Progress" ${item.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-              <option value="Done">Done</option>
-              <option value="Dismissed">Dismiss</option>
-            </select>
-            <button onclick="window._deleteManual('${item.id}')" class="p-1 text-gray-400 hover:text-red-600" title="Delete">
-              <i data-feather="trash-2" class="h-4 w-4"></i>
-            </button>
-          `;
-        } else {
-          actionsHtml = `
-            <button onclick="window._dismissAuto('${item.id}')" class="px-2 py-1 border border-gray-300 rounded text-xs text-gray-500 hover:bg-gray-100">Dismiss</button>
-          `;
-        }
-
-        let linkHtml = '';
-        if (item.link) {
-          linkHtml = `<a href="${item.link}" class="px-3 py-1 bg-brand-blue text-white rounded text-xs font-medium hover:bg-blue-700">View</a>`;
-        }
-
-        return `
-          <div class="bg-white rounded-lg shadow border-l-4 ${style.border} p-4">
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                  <span class="badge ${style.badge} text-[11px]">${item.priority}</span>
-                  <span class="badge bg-gray-100 text-gray-600 text-[11px] flex items-center gap-1">
-                    <i data-feather="${icon}" class="h-3 w-3"></i> ${item.category}
-                  </span>
-                  ${dueDateHtml ? `<span class="text-xs">${dueDateHtml}</span>` : ''}
-                  ${item.assignedTo ? `<span class="text-xs text-gray-400">${escapeHtml(item.assignedTo)}</span>` : ''}
-                </div>
-                <h4 class="text-sm font-semibold text-gray-900">${escapeHtml(item.title)}</h4>
-                ${item.description ? `<p class="text-sm text-gray-500 mt-1">${escapeHtml(item.description)}</p>` : ''}
-              </div>
-              <div class="flex items-center gap-2 flex-shrink-0">
-                ${actionsHtml}
-                ${linkHtml}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      feather.replace({ width: 12, height: 12 });
-    }
-
-    // ─── Manual Item CRUD ────────────────────────────────────────────
-    window._updateManualStatus = async (id, status) => {
-      const update = { status };
-      if (status === 'Done' || status === 'Dismissed') {
-        update.completed_at = new Date().toISOString();
-        update.completed_by = currentUser.email;
-      }
-      const { error } = await supabase.from('action_items').update(update).eq('id', id);
-      if (error) { showToast('Error updating', 'error'); return; }
-      showToast(status === 'Done' ? 'Marked as done' : 'Status updated');
-      await loadAllData();
-    };
-
-    window._deleteManual = async (id) => {
-      if (!confirm('Delete this action item?')) return;
-      const { error } = await supabase.from('action_items').delete().eq('id', id);
-      if (error) { showToast('Error deleting', 'error'); return; }
-      showToast('Deleted');
-      await loadAllData();
-    };
-
-    window._dismissAuto = (id) => {
-      dismissItem(id);
-      showToast('Dismissed for 24 hours');
-    };
-
-    async function saveManualItem(e) {
-      e.preventDefault();
-      const title = document.getElementById('ai-title').value.trim();
-      if (!title) { showToast('Title is required', 'error'); return; }
-
-      const { error } = await supabase.from('action_items').insert({
-        type: 'manual', title,
-        description: document.getElementById('ai-desc').value.trim() || null,
-        priority: document.getElementById('ai-priority').value,
-        due_date: document.getElementById('ai-due').value || null,
-        assigned_to: document.getElementById('ai-assigned').value.trim() || null,
-        status: 'Open',
-        created_by: currentUser.email
-      });
-      if (error) { showToast('Error saving', 'error'); console.error(error); return; }
-      showToast('Action item added');
-      document.getElementById('addModal').classList.add('hidden');
-      await loadAllData();
-    }
-
-    // ─── Init ────────────────────────────────────────────────────────
     async function init() {
-      try {
-        currentUser = await requireAuth();
-        supabase = await getSupabase();
-        document.getElementById('userEmail').textContent = currentUser.email;
-        wireLogoutButton();
-
-        // Priority filters
-        document.querySelectorAll('.pri-filter-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            activePriority = btn.dataset.priority;
-            document.querySelectorAll('.pri-filter-btn').forEach(b => {
-              b.classList.remove('bg-brand-blue', 'text-white');
-              b.classList.add('bg-gray-100', 'text-gray-600');
-            });
-            btn.classList.remove('bg-gray-100', 'text-gray-600');
-            btn.classList.add('bg-brand-blue', 'text-white');
-            applyFilters();
-          });
-        });
-
-        document.getElementById('filterType').addEventListener('change', applyFilters);
-        document.getElementById('filterCategory').addEventListener('change', applyFilters);
-        document.getElementById('filterOverdue').addEventListener('change', applyFilters);
-
-        // Add modal
-        document.getElementById('addManualBtn').addEventListener('click', () => {
-          document.getElementById('ai-title').value = '';
-          document.getElementById('ai-desc').value = '';
-          document.getElementById('ai-priority').value = 'Medium';
-          document.getElementById('ai-due').value = '';
-          document.getElementById('ai-assigned').value = '';
-          document.getElementById('addModal').classList.remove('hidden');
-        });
-        document.getElementById('closeAddModal').addEventListener('click', () => document.getElementById('addModal').classList.add('hidden'));
-        document.getElementById('cancelAdd').addEventListener('click', () => document.getElementById('addModal').classList.add('hidden'));
-        document.getElementById('addModal').addEventListener('click', (e) => { if (e.target.id === 'addModal') document.getElementById('addModal').classList.add('hidden'); });
-        document.getElementById('addForm').addEventListener('submit', saveManualItem);
-
-        await loadAllData();
-        feather.replace();
-      } catch (e) { console.error('Init error:', e); }
+      const user = await requireAuth();
+      document.getElementById('userEmail').textContent = user.email || '';
+      wireLogoutButton();
+      feather.replace();
     }
 
-    init();
+    init().catch((error) => {
+      console.error('Failed to initialize page', error);
+    });
   </script>
 </body>
 </html>

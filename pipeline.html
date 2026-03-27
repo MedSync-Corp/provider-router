@@ -13,18 +13,23 @@
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['IBM Plex Sans', 'sans-serif'] },
-          colors: { brand: { purple: '#7030a0', blue: '#3656b8', cyan: '#01a7cb' } }
+          fontFamily: {
+            sans: ['IBM Plex Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#7030a0',
+              blue: '#3656b8',
+              cyan: '#01a7cb',
+            }
+          }
         }
       }
-    }
+    };
   </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
-  <div id="toast-container"></div>
-
-  <!-- Navigation -->
   <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
@@ -34,495 +39,57 @@
         </div>
         <div class="flex items-center gap-6">
           <a href="index.html" class="text-gray-600 hover:text-gray-900">Finder</a>
-          <a href="providers.html" class="text-gray-600 hover:text-gray-900">Providers</a>
-          <a href="credentials.html" class="text-gray-600 hover:text-gray-900">Credentials</a>
+          <a href="roster.html" class="text-gray-600 hover:text-gray-900">Roster</a>
           <a href="dashboard.html" class="text-gray-600 hover:text-gray-900">Dashboard</a>
-          <a href="action-items.html" class="text-gray-600 hover:text-gray-900">Action Items</a>
-          <a href="pipeline.html" class="text-brand-blue font-medium border-b-2 border-brand-blue pb-1">Pipeline</a>
-          <a href="settings.html" class="text-gray-600 hover:text-gray-900">Settings</a>
         </div>
         <div class="flex items-center gap-4">
           <span id="userEmail" class="text-sm text-gray-600"></span>
           <button id="logoutBtn" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
-            <i data-feather="log-out" class="h-4 w-4"></i> Sign Out
+            <i data-feather="log-out" class="h-4 w-4"></i>
+            Sign Out
           </button>
         </div>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Total</div>
-        <div class="text-2xl font-bold text-gray-900" id="statTotal">0</div>
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <section class="bg-white rounded-lg shadow p-8">
+      <div class="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-sm font-medium mb-5">
+        <i data-feather="alert-triangle" class="h-4 w-4"></i>
+        API Migration
       </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Contacted</div>
-        <div class="text-2xl font-bold text-blue-600" id="statContacted">0</div>
+      <h1 class="text-2xl font-bold text-gray-900">Pipeline is not available yet</h1>
+      <p class="text-gray-600 mt-3">
+        The production API does not expose pipeline endpoints yet. This page is intentionally disabled in the
+        GitHub Pages deployment so the app no longer depends on Supabase.
+      </p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a href="index.html" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-lg font-medium hover:bg-blue-700 transition">
+          <i data-feather="search" class="h-4 w-4"></i>
+          Open Finder
+        </a>
+        <a href="dashboard.html" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition">
+          <i data-feather="bar-chart-2" class="h-4 w-4"></i>
+          Open Dashboard
+        </a>
       </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Interested</div>
-        <div class="text-2xl font-bold text-brand-cyan" id="statInterested">0</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Converted</div>
-        <div class="text-2xl font-bold text-green-600" id="statConverted">0</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4">
-        <div class="text-sm text-gray-500">Declined</div>
-        <div class="text-2xl font-bold text-red-600" id="statDeclined">0</div>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="text-sm text-gray-600 font-medium">Stage:</span>
-        <div class="flex flex-wrap gap-1" id="stageFilters">
-          <button data-stage="" class="stage-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-brand-blue text-white">All</button>
-          <button data-stage="Prospect" class="stage-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Prospect</button>
-          <button data-stage="Contacted" class="stage-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Contacted</button>
-          <button data-stage="Interested" class="stage-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Interested</button>
-          <button data-stage="On Hold" class="stage-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">On Hold</button>
-          <button data-stage="Converted" class="stage-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Converted</button>
-          <button data-stage="Declined" class="stage-filter-btn px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Declined</button>
-        </div>
-        <div class="flex-1 min-w-[200px]">
-          <input type="text" id="searchInput" placeholder="Search name, email, licenses..." class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none">
-        </div>
-        <button id="addProspectBtn" class="px-4 py-1.5 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-1">
-          <i data-feather="plus" class="h-4 w-4"></i> Add Prospect
-        </button>
-      </div>
-    </div>
-
-    <!-- Pipeline Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="data-table" id="pipelineTable">
-          <thead>
-            <tr>
-              <th class="sortable" data-sort="name">Name <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
-              <th class="sortable" data-sort="email">Email <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
-              <th>Phone</th>
-              <th>Licenses</th>
-              <th>States Needed</th>
-              <th class="sortable" data-sort="stage">Stage <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
-              <th class="sortable" data-sort="last_contact">Last Contact <i data-feather="chevrons-up-down" class="h-4 w-4 inline"></i></th>
-              <th>Notes</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="pipelineTableBody">
-            <tr><td colspan="9" class="text-center py-8 text-gray-500"><div class="loading-spinner mx-auto"></div><p class="mt-2">Loading...</p></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-600">Rows per page:</span>
-          <select id="rowsPerPage" class="px-2 py-1 border border-gray-300 rounded text-sm">
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </select>
-        </div>
-        <div class="flex items-center gap-4">
-          <span id="paginationInfo" class="text-sm text-gray-600"></span>
-          <div class="flex gap-1">
-            <button id="prevPageBtn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Prev</button>
-            <button id="nextPageBtn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   </main>
 
   <script type="module">
     import { requireAuth, wireLogoutButton } from './auth.js';
-    import { getSupabase } from './supabaseClient.js';
 
-    const STAGES = ['Prospect', 'Contacted', 'Interested', 'On Hold', 'Converted', 'Declined'];
-    const CONVERTIBLE = new Set(['Prospect', 'Contacted', 'Interested', 'On Hold']);
-
-    let currentUser = null;
-    let supabase = null;
-    let prospects = [];
-    let filtered = [];
-    let currentPage = 1;
-    let rowsPerPage = 25;
-    let sortColumn = 'name';
-    let sortDirection = 'asc';
-    let activeStageFilter = '';
-
-    // ─── Utilities ───────────────────────────────────────────────────
-    function showToast(message, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
-      toast.innerHTML = `<i data-feather="${type === 'success' ? 'check-circle' : type === 'error' ? 'alert-circle' : 'info'}" class="h-4 w-4"></i><span>${message}</span>`;
-      container.appendChild(toast);
-      feather.replace({ width: 16, height: 16 });
-      setTimeout(() => { toast.style.animation = 'slideOut 0.3s ease-out forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
-    }
-
-    function formatDate(d) {
-      if (!d) return '—';
-      const s = String(d);
-      if (s.length === 10 && s[4] === '-') {
-        const [y, m, day] = s.split('-');
-        return new Date(y, m - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      }
-      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
-    function formatDateInput(d) { return d ? d.split('T')[0] : ''; }
-    function todayStr() { return new Date().toLocaleDateString('sv'); }
-    function escapeHtml(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
-
-    function stageBadge(stage) {
-      const map = {
-        'Prospect': 'bg-gray-100 text-gray-600',
-        'Contacted': 'bg-blue-100 text-blue-800',
-        'Interested': 'bg-cyan-100 text-cyan-800',
-        'On Hold': 'bg-amber-100 text-amber-800',
-        'Converted': 'badge-active',
-        'Declined': 'badge-blocked'
-      };
-      return `<span class="badge ${map[stage] || 'bg-gray-100 text-gray-500'}">${stage}</span>`;
-    }
-
-    async function logStatusChange(entityType, entityId, field, oldVal, newVal) {
-      await supabase.from('status_log').insert({
-        entity_type: entityType, entity_id: entityId, field_changed: field,
-        old_value: oldVal != null ? String(oldVal) : null,
-        new_value: newVal != null ? String(newVal) : null,
-        changed_by: currentUser.email
-      });
-    }
-
-    // ─── Data ────────────────────────────────────────────────────────
-    async function loadData() {
-      const { data, error } = await supabase.from('provider_pipeline').select('*').order('last_name').order('first_name');
-      if (error) { showToast('Error loading pipeline', 'error'); console.error(error); return; }
-      prospects = data || [];
-      updateStats();
-      applyFilters();
-    }
-
-    function updateStats() {
-      const counts = {};
-      STAGES.forEach(s => counts[s] = 0);
-      prospects.forEach(p => { if (counts[p.stage] !== undefined) counts[p.stage]++; });
-      document.getElementById('statTotal').textContent = prospects.length;
-      document.getElementById('statContacted').textContent = counts.Contacted;
-      document.getElementById('statInterested').textContent = counts.Interested;
-      document.getElementById('statConverted').textContent = counts.Converted;
-      document.getElementById('statDeclined').textContent = counts.Declined;
-    }
-
-    // ─── Filter & Sort ───────────────────────────────────────────────
-    function applyFilters() {
-      const search = document.getElementById('searchInput').value.toLowerCase();
-      filtered = prospects.filter(p => {
-        if (activeStageFilter && p.stage !== activeStageFilter) return false;
-        if (search) {
-          const s = `${p.first_name} ${p.last_name} ${p.email||''} ${p.phone||''} ${p.licenses||''} ${p.states_needed||''}`.toLowerCase();
-          if (!s.includes(search)) return false;
-        }
-        return true;
-      });
-      sortData();
-      currentPage = 1;
-      renderTable();
-    }
-
-    function sortData() {
-      filtered.sort((a, b) => {
-        let av, bv;
-        switch (sortColumn) {
-          case 'name': av = `${a.last_name} ${a.first_name}`.toLowerCase(); bv = `${b.last_name} ${b.first_name}`.toLowerCase(); break;
-          case 'email': av = (a.email||'').toLowerCase(); bv = (b.email||'').toLowerCase(); break;
-          case 'stage': av = STAGES.indexOf(a.stage); bv = STAGES.indexOf(b.stage); break;
-          case 'last_contact': av = a.last_contact_date||''; bv = b.last_contact_date||''; break;
-          default: av = ''; bv = '';
-        }
-        if (av < bv) return sortDirection === 'asc' ? -1 : 1;
-        if (av > bv) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    // ─── Render ──────────────────────────────────────────────────────
-    function renderTable() {
-      const tbody = document.getElementById('pipelineTableBody');
-      const start = (currentPage - 1) * rowsPerPage;
-      const end = start + rowsPerPage;
-      const page = filtered.slice(start, end);
-
-      if (page.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-gray-500">No prospects found</td></tr>';
-      } else {
-        tbody.innerHTML = page.map(p => {
-          const muted = p.stage === 'Declined' ? 'text-gray-400' : '';
-          const canConvert = CONVERTIBLE.has(p.stage);
-          const isConverted = p.stage === 'Converted';
-
-          let actionsHtml = `
-            <button onclick="window._editProspect('${p.id}')" class="p-1 text-gray-400 hover:text-brand-blue" title="Edit"><i data-feather="edit-2" class="h-4 w-4"></i></button>
-            <button onclick="window._deleteProspect('${p.id}')" class="p-1 text-gray-400 hover:text-red-600" title="Delete"><i data-feather="trash-2" class="h-4 w-4"></i></button>
-          `;
-          if (canConvert) {
-            actionsHtml += `<button onclick="window._convertToProvider('${p.id}')" class="p-1 text-gray-400 hover:text-green-600" title="Convert to Provider"><i data-feather="user-check" class="h-4 w-4"></i></button>`;
-          }
-          if (isConverted && p.converted_provider_id) {
-            actionsHtml += `<a href="providers.html?id=${p.converted_provider_id}" class="p-1 text-green-600 hover:text-green-800" title="View Provider"><i data-feather="external-link" class="h-4 w-4"></i></a>`;
-          }
-
-          return `
-            <tr class="${muted}" id="pipeline-row-${p.id}">
-              <td><div class="font-medium">${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</div></td>
-              <td class="text-sm">${escapeHtml(p.email) || '—'}</td>
-              <td class="text-sm">${escapeHtml(p.phone) || '—'}</td>
-              <td class="text-sm">${escapeHtml(p.licenses) || '—'}</td>
-              <td class="text-sm">${escapeHtml(p.states_needed) || '—'}</td>
-              <td>${stageBadge(p.stage)}</td>
-              <td class="text-sm text-gray-500">${formatDate(p.last_contact_date)}</td>
-              <td class="text-sm text-gray-500 truncate max-w-[150px]" title="${escapeHtml(p.outreach_notes)}">${escapeHtml(p.outreach_notes) || '—'}</td>
-              <td><div class="flex items-center gap-1">${actionsHtml}</div></td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      const totalPages = Math.ceil(filtered.length / rowsPerPage) || 1;
-      document.getElementById('paginationInfo').textContent = filtered.length > 0 ? `${start+1}-${Math.min(end, filtered.length)} of ${filtered.length}` : '0';
-      document.getElementById('prevPageBtn').disabled = currentPage === 1;
-      document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
-      feather.replace({ width: 16, height: 16 });
-    }
-
-    // ─── CRUD ────────────────────────────────────────────────────────
-    window._addProspect = () => {
-      const tbody = document.getElementById('pipelineTableBody');
-      if (document.getElementById('pipeline-row-new')) return;
-      const row = document.createElement('tr');
-      row.id = 'pipeline-row-new';
-      row.className = 'bg-green-50';
-      row.innerHTML = `
-        <td class="px-2 py-2">
-          <div class="flex gap-1">
-            <input type="text" id="pp-first-new" placeholder="First" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm">
-            <input type="text" id="pp-last-new" placeholder="Last" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm">
-          </div>
-        </td>
-        <td class="px-2 py-2"><input type="email" id="pp-email-new" placeholder="Email" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2"><input type="text" id="pp-phone-new" placeholder="Phone" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2"><input type="text" id="pp-licenses-new" placeholder="AL, FL, TX" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2"><input type="text" id="pp-states-new" placeholder="States" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2"><span class="badge bg-gray-100 text-gray-600">Prospect</span></td>
-        <td class="px-2 py-2">—</td>
-        <td class="px-2 py-2"><input type="text" id="pp-notes-new" placeholder="Notes" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2">
-          <div class="flex items-center gap-1">
-            <button onclick="window._saveNewProspect()" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">Add</button>
-            <button onclick="document.getElementById('pipeline-row-new').remove()" class="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">Cancel</button>
-          </div>
-        </td>
-      `;
-      tbody.insertBefore(row, tbody.firstChild);
-    };
-
-    window._saveNewProspect = async () => {
-      const first = document.getElementById('pp-first-new').value.trim();
-      const last = document.getElementById('pp-last-new').value.trim();
-      if (!first || !last) { showToast('First and last name are required', 'error'); return; }
-
-      const { error } = await supabase.from('provider_pipeline').insert({
-        first_name: first, last_name: last, stage: 'Prospect',
-        email: document.getElementById('pp-email-new').value || null,
-        phone: document.getElementById('pp-phone-new').value || null,
-        licenses: document.getElementById('pp-licenses-new').value || null,
-        states_needed: document.getElementById('pp-states-new').value || null,
-        outreach_notes: document.getElementById('pp-notes-new').value || null
-      });
-      if (error) { showToast('Error adding prospect', 'error'); console.error(error); return; }
-      showToast('Prospect added');
-      await loadData();
-    };
-
-    window._editProspect = async (id) => {
-      const { data: p, error } = await supabase.from('provider_pipeline').select('*').eq('id', id).single();
-      if (error || !p) { showToast('Error loading prospect', 'error'); return; }
-
-      const row = document.getElementById(`pipeline-row-${id}`);
-      if (!row) return;
-      row.className = 'bg-blue-50';
-      row.innerHTML = `
-        <td class="px-2 py-2">
-          <div class="flex gap-1">
-            <input type="text" id="pp-first-${id}" value="${escapeHtml(p.first_name)}" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm">
-            <input type="text" id="pp-last-${id}" value="${escapeHtml(p.last_name)}" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm">
-          </div>
-        </td>
-        <td class="px-2 py-2"><input type="email" id="pp-email-${id}" value="${escapeHtml(p.email)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2"><input type="text" id="pp-phone-${id}" value="${escapeHtml(p.phone)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2"><input type="text" id="pp-licenses-${id}" value="${escapeHtml(p.licenses)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2"><input type="text" id="pp-states-${id}" value="${escapeHtml(p.states_needed)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2">
-          <select id="pp-stage-${id}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
-            ${STAGES.map(s => `<option value="${s}" ${s === p.stage ? 'selected' : ''}>${s}</option>`).join('')}
-          </select>
-        </td>
-        <td class="px-2 py-2"><input type="date" id="pp-contact-${id}" value="${formatDateInput(p.last_contact_date)}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2"><input type="text" id="pp-notes-${id}" value="${escapeHtml(p.outreach_notes)||''}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm"></td>
-        <td class="px-2 py-2">
-          <div class="flex items-center gap-1">
-            <button onclick="window._saveProspect('${id}')" class="px-2 py-1 bg-brand-blue text-white rounded text-xs hover:bg-blue-700">Save</button>
-            <button onclick="window._reload()" class="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">Cancel</button>
-          </div>
-        </td>
-      `;
-    };
-
-    window._saveProspect = async (id) => {
-      const { data: old } = await supabase.from('provider_pipeline').select('stage').eq('id', id).single();
-      const newStage = document.getElementById(`pp-stage-${id}`).value;
-
-      const { error } = await supabase.from('provider_pipeline').update({
-        first_name: document.getElementById(`pp-first-${id}`).value,
-        last_name: document.getElementById(`pp-last-${id}`).value,
-        email: document.getElementById(`pp-email-${id}`).value || null,
-        phone: document.getElementById(`pp-phone-${id}`).value || null,
-        licenses: document.getElementById(`pp-licenses-${id}`).value || null,
-        states_needed: document.getElementById(`pp-states-${id}`).value || null,
-        stage: newStage,
-        last_contact_date: document.getElementById(`pp-contact-${id}`).value || null,
-        outreach_notes: document.getElementById(`pp-notes-${id}`).value || null
-      }).eq('id', id);
-
-      if (error) { showToast('Error saving', 'error'); console.error(error); return; }
-      if (old && old.stage !== newStage) {
-        await logStatusChange('pipeline', id, 'stage', old.stage, newStage);
-      }
-      showToast('Prospect updated');
-      await loadData();
-    };
-
-    window._deleteProspect = async (id) => {
-      if (!confirm('Delete this prospect?')) return;
-      const { error } = await supabase.from('provider_pipeline').delete().eq('id', id);
-      if (error) { showToast('Error deleting', 'error'); return; }
-      showToast('Prospect deleted');
-      await loadData();
-    };
-
-    // ─── Convert to Provider ─────────────────────────────────────────
-    window._convertToProvider = async (id) => {
-      const p = prospects.find(r => r.id === id);
-      if (!p) return;
-      if (!confirm(`Convert ${p.first_name} ${p.last_name} to a provider? This will create a new provider record.`)) return;
-
-      // Step 1: Create provider
-      const { data: newProvider, error: provErr } = await supabase
-        .from('providers')
-        .insert({ first_name: p.first_name, last_name: p.last_name, email: p.email || null, mobile: p.phone || null, status: 'In Progress' })
-        .select('id')
-        .single();
-
-      if (provErr || !newProvider) {
-        showToast('Error creating provider record', 'error');
-        console.error(provErr);
-        return;
-      }
-
-      // Step 2: Update pipeline record
-      const { error: pipeErr } = await supabase
-        .from('provider_pipeline')
-        .update({ stage: 'Converted', converted_provider_id: newProvider.id })
-        .eq('id', id);
-
-      if (pipeErr) {
-        showToast('Provider created but failed to update pipeline record', 'error');
-        console.error(pipeErr);
-        return;
-      }
-
-      // Step 3: Log
-      await logStatusChange('pipeline', id, 'stage', p.stage, 'Converted');
-
-      showToast('Provider created successfully', 'success');
-
-      // Show link in a temporary banner
-      const tbody = document.getElementById('pipelineTableBody');
-      const banner = document.createElement('tr');
-      banner.className = 'bg-green-50';
-      banner.innerHTML = `
-        <td colspan="9" class="py-3 px-4">
-          <div class="flex items-center gap-2 text-sm text-green-800">
-            <i data-feather="check-circle" class="h-4 w-4"></i>
-            <span><strong>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</strong> converted to provider.</span>
-            <a href="providers.html?id=${newProvider.id}" class="text-brand-blue hover:underline font-medium">Open profile →</a>
-          </div>
-        </td>
-      `;
-      tbody.insertBefore(banner, tbody.firstChild);
-      feather.replace({ width: 16, height: 16 });
-
-      await loadData();
-    };
-
-    window._reload = () => loadData();
-
-    // ─── Init ────────────────────────────────────────────────────────
     async function init() {
-      try {
-        currentUser = await requireAuth();
-        supabase = await getSupabase();
-        document.getElementById('userEmail').textContent = currentUser.email;
-        wireLogoutButton();
-
-        // Stage filters
-        document.querySelectorAll('.stage-filter-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            activeStageFilter = btn.dataset.stage;
-            document.querySelectorAll('.stage-filter-btn').forEach(b => {
-              b.classList.remove('bg-brand-blue', 'text-white');
-              b.classList.add('bg-gray-100', 'text-gray-600');
-            });
-            btn.classList.remove('bg-gray-100', 'text-gray-600');
-            btn.classList.add('bg-brand-blue', 'text-white');
-            applyFilters();
-          });
-        });
-
-        document.getElementById('searchInput').addEventListener('input', applyFilters);
-        document.getElementById('addProspectBtn').addEventListener('click', window._addProspect);
-
-        // Pagination
-        document.getElementById('rowsPerPage').addEventListener('change', (e) => { rowsPerPage = parseInt(e.target.value); currentPage = 1; renderTable(); });
-        document.getElementById('prevPageBtn').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); } });
-        document.getElementById('nextPageBtn').addEventListener('click', () => { if (currentPage < Math.ceil(filtered.length / rowsPerPage)) { currentPage++; renderTable(); } });
-
-        // Sorting
-        document.querySelectorAll('.sortable').forEach(th => {
-          th.addEventListener('click', () => {
-            const col = th.dataset.sort;
-            if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-            else { sortColumn = col; sortDirection = 'asc'; }
-            sortData();
-            renderTable();
-          });
-        });
-
-        await loadData();
-        feather.replace();
-      } catch (e) { console.error('Init error:', e); }
+      const user = await requireAuth();
+      document.getElementById('userEmail').textContent = user.email || '';
+      wireLogoutButton();
+      feather.replace();
     }
 
-    init();
+    init().catch((error) => {
+      console.error('Failed to initialize page', error);
+    });
   </script>
 </body>
 </html>
