@@ -180,7 +180,10 @@ async function runInsert(query) {
       };
     }
     case 'credential_linking': {
-      const credentialID = query.payload?.credential_id;
+      const credentialID = await resolveCredentialIDForLinkingMutation(query);
+      if (!credentialID) {
+        return { data: null, error: new Error('Missing credential_id for credential_linking insert') };
+      }
       await apiRequest(`/credentials/${credentialID}/linking`, {
         method: 'PUT',
         body: { linked: !!query.payload?.linked },
@@ -268,7 +271,10 @@ async function runUpdate(query) {
       };
     }
     case 'credential_linking': {
-      const credentialID = getEqValue(query, 'credential_id') || (await resolveCredentialIDByLinkingID(id));
+      const credentialID = await resolveCredentialIDForLinkingMutation(query, id);
+      if (!credentialID) {
+        return { data: null, error: new Error('Missing credential_id for credential_linking update') };
+      }
       return {
         data: await apiRequest(`/credentials/${credentialID}/linking`, {
           method: 'PUT',
@@ -601,6 +607,20 @@ async function fetchProviderMap() {
 async function resolveCredentialIDByLinkingID(id) {
   const result = await selectCredentialLinking(new QueryBuilder('credential_linking').select('*').eq('id', id).single());
   return result.data?.credential_id || '';
+}
+
+async function resolveCredentialIDForLinkingMutation(query, id = '') {
+  const payloadCredentialID = String(query.payload?.credential_id || '').trim();
+  if (payloadCredentialID) return payloadCredentialID;
+
+  const filteredCredentialID = String(getEqValue(query, 'credential_id') || '').trim();
+  if (filteredCredentialID) return filteredCredentialID;
+
+  if (id) {
+    return String(await resolveCredentialIDByLinkingID(id) || '').trim();
+  }
+
+  return '';
 }
 
 function dedupeByID(items) {
