@@ -1,15 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redirecting - MedSync NP Router</title>
-  <meta http-equiv="refresh" content="0; url=./providers.html">
-  <script>
-    window.location.replace('./providers.html' + window.location.search + window.location.hash);
-  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Provider Router Maintenance | MedSync</title>
+  <link rel="stylesheet" href="maintenance.css">
 </head>
 <body>
-  <p>Redirecting to <a href="./providers.html">Providers</a>...</p>
+  <a class="skip-link" href="#main-content">Skip to service status</a>
+
+  <div class="page-shell">
+    <header class="brand-bar" aria-label="MedSync Provider Router">
+      <div class="brand-lockup">
+        <img src="medsync-logo.png" alt="MedSync">
+        <span class="product-name">Provider Router</span>
+      </div>
+      <span class="status-badge">Maintenance</span>
+    </header>
+
+    <main id="main-content" tabindex="-1">
+      <section class="notice" aria-labelledby="maintenance-title">
+        <div class="containment-rail" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+        <div class="notice-content">
+          <p class="eyebrow">Legacy system retired</p>
+          <h1 id="maintenance-title">Provider Router is temporarily unavailable.</h1>
+          <p class="lede">We are preparing a secure replacement. This page does not provide access to legacy tools or data.</p>
+
+          <div class="guidance">
+            <h2>Where to work now</h2>
+            <p>Authorized staff should use the Provider Network view in the MedSync CRM for credentialing information.</p>
+          </div>
+
+          <p class="support">Need help finding the CRM view? Contact your MedSync administrator.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>MedSync internal systems</span>
+      <span>Legacy Provider Router</span>
+    </footer>
+  </div>
 </body>
 </html>
